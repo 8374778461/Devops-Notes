@@ -1,0 +1,228 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-app
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: java-app
+
+  template:
+    metadata:
+      labels:
+        app: java-app
+
+    spec:
+      containers:
+      - name: java-container
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+
+
+
+	When Deployment YAML is applied, Kubernetes creates a Deployment object. Deployment internally creates a ReplicaSet. The ReplicaSet reads the replica count and creates the required Pods using the Pod template. The selector in ReplicaSet matches the labels defined in the Pod template, so ReplicaSet can identify and manage its Pods. If any Pod is deleted or fails, ReplicaSet automatically creates a new Pod to maintain the desired count.
+
+================
+Pod Life Cycle 
+===============
+
+
+Pod YAML
+   ↓
+API Server receives request
+   ↓
+Pod Object created in Kubernetes
+   ↓
+Scheduler finds a suitable Worker Node
+   ↓
+Pod assigned to that Node
+   ↓
+Kubelet on the Node receives instruction
+   ↓
+Container Runtime (Docker/containerd) pulls image
+   ↓
+Container is created
+   ↓
+Application starts
+   ↓
+Pod becomes Running
+
+
+
+======
+Replication Conrtroller Manifest File (rc.yaml)
+==============================
+
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: javawebapprc
+spec:
+  replicas: 3
+
+  selector:
+      app: java-app
+
+  template:
+    metadata:
+      name: javawebappPod
+      labels:
+        app: java-app
+
+    spec:
+      containers:
+      - name: java-container
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+
+
+======
+Service Manifest
+==================
+apiVersion: V1
+kind: Service
+metadata: 
+ name: javawebsvc
+spec:
+ type:NodePort
+ selector:
+  app: java-app
+ ports:
+  -port: 80 
+   targetPort: 8080
+
+
+Scalling the Application :
+
+Current 3
+
+scale up to 5 
+
+Kubectl scale rc javawebapprc --replicas 3
+
+=====================
+ReplicaSet
+================
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: javawebapprs
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: java-app
+
+  template:
+    metadata:
+      name: javawebappPod
+      labels:
+        app: java-app
+
+    spec:
+      containers:
+      - name: java-container
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+
+
+kubbectl scale rs javawebapprs --replicas 2
+
+
+===========
+Deamon Set
+==========
+DaemonSet is a Kubernetes controller that ensures one Pod runs on every worker node.
+
+
+3 Nodes
+   ↓
+DaemonSet
+   ↓
+3 Pods
+
+
+5 Nodes
+   ↓
+DaemonSet
+   ↓
+5 Pods
+
+Real -Time -use cases :
+
+I need Logs for every node so i install Fluentd on every node 
+
+Node-1 → Fluentd
+Node-2 → Fluentd
+Node-3 → Fluentd
+
+Collect logs from all nodes 
+
+
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: logging
+
+spec:
+  selector:
+    matchLabels:
+      app: httpd-logging
+
+  template:
+    metadata:
+      labels:
+        app: httpd-logging
+
+    spec:
+      containers:
+      - name: webserver
+        image: httpd
+        ports:
+        - containerPort: 80
+
+
+So How many worker nodes have that amount of Pods are created.
+
+Replicas Not applicable for Deamonset
+
+1. logs Collection
+2. Node monitoring
+
+===================
+Deployment
+====================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

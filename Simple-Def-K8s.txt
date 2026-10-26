@@ -1,0 +1,120 @@
+Advantages of Kubernates :
+
+1. Self Healing --->one pod deleted due to some bug then create a new Pod
+2. Load Balancing--->Load Willl be distrubuted all containers which are up and running 
+3. Auto scaling.---> Based on traffic containers/pod count will be increased
+
+Kubernates : Managing the Containers
+
+Normally we created a Pod Manually
+
+Automatically we created with the Controllers
+
+
+1. Replication Controller 
+
+2. ReplicaSet
+
+3. DaemonSet
+
+4. Deployment
+
+1. Replication Controller ---> Used to create multiple pods and it will make sure pods always running.
+
+			2. Using this we can achieve High Availability 
+			
+			3. Replication Controller and Pods are associated with Labels and Selectors
+
+
+
+
+we can scale up and scale down pods using Replication Controller 
+
+
+
+✅ Maintains Pod count
+ ✅ Self-healing
+ ✅ High Availability
+
+
+
+Label :
+
+Label = Name Tag for a Pod
+
+labels:
+  app: java-app
+
+
+Selector
+
+Selector = Search Mechanism
+
+selector:
+  app: java-app
+
+"Find all Pods having app=java-app"
+
+Labels are key-value pairs attached to Pods for identification. Selectors are used by Kubernetes objects like Services, ReplicaSets, and Deployments to find and manage Pods based on those labels.
+
+
+2. ReplicaSet : ReplicaSet is a Kubernetes controller that maintains the required number of Pods.
+
+we can scale up and scale down pods using Replicaset
+
+Both Replication controller and Replicaset are same but replication controller is old 
+
+The difference between replication Controller and ReplicaSet IS Selector 
+
+1. Equlity Selector (RC)---> Only Exact Matching
+
+2. Set based Seklector (RS)----> Supports advanced Label Selectors 
+
+Refer kuber-Controller In GIt 
+
+
+2. apiVersion RC-->V1 Rs --> apps/v1
+
+
+
+3. daemonSet---> One pod on Every Node 
+
+DaemonSet is a Kubernetes controller that ensures one Pod runs on every worker node.
+
+
+3 Nodes
+   ↓
+DaemonSet
+   ↓
+3 Pods
+
+
+5 Nodes
+   ↓
+DaemonSet
+   ↓
+5 Pods
+
+Real -Time -use cases :
+
+I need Logs for every node so i install Fluentd on every node 
+
+Node-1 → Fluentd
+Node-2 → Fluentd
+Node-3 → Fluentd
+
+Collect logs from all nodes 
+
+So How many worker nodes have that amount of Pods are created.
+
+Replicas Not applicable for Deamonset
+
+1. logs Collection
+2. Node monitoring
+
+
+
+
+
+
+ 

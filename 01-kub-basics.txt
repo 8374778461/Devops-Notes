@@ -1,0 +1,654 @@
+kubernates : simplifies the deployment, scaling, and management of containerized applications through automation.
+
+1. Work nodes ----> That carry Containers 
+
+2. master nodes ---> monitor and manages the work nodes.
+
+Kubernetes Cluster
+│
+├──master node -- Control Plane (Brain)
+│
+├── Worker Node 1
+│   └── Pods
+│
+├── Worker Node 2
+│   └── Pods
+│
+└── Worker Node 3
+    └── Pods
+
+
+
+====================
+Master Node
+============
+
+1. The master node contains several control plane components that manage the entire Kubernetes cluster
+
+
+Kubernetes Cluster
+│
+├── Master Node / Control Plane 🧠
+│   ├── API Server
+│   ├── Scheduler
+│   ├── Controller Manager
+│   └── etcd
+│
+├── Worker Node 1
+│   └── Pods
+│
+├── Worker Node 2
+│   └── Pods
+│
+└── Worker Node 3
+    └── Pods
+
+
+
+It keeps track of all nodes, decides where applications should run, and continuously monitors the cluster
+
+Components :
+
+1. API Server
+2. Controller 
+3. Schedular 
+4. ETCD 
+
+1. API Server
+   - Entry point of Kubernetes cluster.
+   - Receives all requests.
+
+2. Scheduler
+   - Assigns pods to worker nodes.
+
+3. Controller Manager
+   - Ensures desired state matches current state.
+
+4. ETCD
+   - Key-value database storing cluster information.
+
+
+Kubernetes Cluster = Company
+
+API Server        = Receptionist
+Scheduler         = Team Lead (assigns work)
+Controller Manager= Manager (checks work is completed)
+ETCD              = Company Database
+
+
+=================
+Worker Nodes 
+==========
+Worker Node
+│
+├── Kubelet
+├── Kube Proxy
+└── Container Runtime
+
+===============
+1. Kublet:
+=================
+ running on every worker node.
+
+Responsibilities:
+
+Talks to API Server
+Creates pods on the node
+Monitors pod health
+Sends node status to Control Plane
+
+Example
+
+You create pod:
+
+kubectl run nginx --image=nginx
+
+API Server
+    ↓
+Kubelet
+    ↓
+Creates Nginx Pod
+
+=======================
+2. Container run time Interface :CRI (Container Runtime Interface) is a standard interface that allows Kubelet to communicate with container runtimes such as containerd and CRI-O,
+==========================
+
+When you create a pod:
+
+kubectl run nginx --image=nginx
+
+Kubelet sends requests like:
+
+Pull Image
+Create Container
+Start Container
+Stop Container
+Delete Container
+
+These requests go through CRI to the runtime.
+
+Kubelet
+|
+| "Start nginx container"
+↓
+CRI
+↓
+containerd
+↓
+Nginx Container Running
+
+===========
+3. Containered :
+==============
+
+containerd is a container runtime installed on worker nodes. It is responsible for pulling images and creating, starting, and stopping containers. Kubelet communicates with containerd through the Container Runtime Interface (CRI).
+
+What containerd does?
+
+✅ Pulls images from Docker Hub/ECR
+
+✅ Creates containers
+
+✅ Starts containers
+
+✅ Stops containers
+
+✅ Deletes containers
+
+
+✅ containerd is a Container Runtime.
+ ✅ CRI is the interface.
+ ✅ Kubelet talks to containerd through CRI
+
+=================
+4. Kube-Proxy
+==================
+
+👉 Handles networking inside the cluster.
+
+Responsibilities:
+
+Service communication
+Pod-to-Pod communication
+Load balancing requests
+
+========================
+Docker Vs Containered :
+====================
+
+Docker is a complete container platform used by developers,
+whereas containerd is the container runtime that actually
+creates and manages containers. Docker internally uses
+containerd, and Kubernetes communicates directly with
+containerd through CRI.
+
+Docker → containerd → runc → Container
+Kubelet → CRI → containerd → runc → Container
+
+=================
+Before Containered
+==============
+
+when you run  ---> docker run nginnx.
+
+Docker does many things:
+
+Pull image from Docker Hub
+Create container
+Manage networking
+Manage storage
+Start container
+
+Docker was doing everything.
+=========
+Problem
+=========
+
+Kubernetes needs only one thing:
+
+👉 Run containers
+
+It doesn't need all Docker features.
+
+So Kubernetes started using a lightweight container runtime called containerd.
+
+
+==========
+Docker 
+=========
+
+Docker CLI
+     │
+Docker Engine
+     │
+containerd
+     │
+runc
+     │
+Container
+
+docker run nginx
+Docker → containerd → runc → Container
+
+
+Containerd
+
+Containerd is only a container runtime.
+
+It can:
+
+✅ Pull Images
+
+✅ Create Containers
+
+✅ Start Containers
+
+✅ Stop Containers
+
+✅ Manage Container Lifecycle
+
+
+Suppose Kubernetes needs an Nginx Pod.
+
+Kubelet sends request:
+
+Create Nginx Container
+
+Flow:
+
+Kubelet
+ │
+ ▼
+CRI
+ │
+ ▼
+containerd
+ │
+ ▼
+runc
+ │
+ ▼
+Container Started
+
+| Docker                     | Containerd               |
+| -------------------------- | ------------------------ |
+| Full platform              | Container Runtime        |
+| Developer tool             | Kubernetes tool          |
+| Has CLI (`docker`)         | Uses `ctr`, `crictl`     |
+| Uses containerd internally | Directly runs containers |
+| More features              | Lightweight              |
+
+
+                    DOCKER
+
+   docker run nginx
+           │
+           ▼
+    ┌───────────────┐
+    │ Docker CLI    │
+    └───────┬───────┘
+            │
+            ▼
+    ┌───────────────┐
+    │ Docker Engine │
+    └───────┬───────┘
+            │
+            ▼
+    ┌───────────────┐
+    │  containerd   │
+    └───────┬───────┘
+            │
+            ▼
+    ┌───────────────┐
+    │     runc      │
+    └───────┬───────┘
+            │
+            ▼
+    ┌───────────────┐
+    │  Container    │
+    │   (nginx)     │
+    └───────────────┘
+
+
+
+         kubectl apply -f pod.yaml
+                     │
+                     ▼
+              Kubernetes
+                     │
+                     ▼
+                 Kubelet
+                     │
+                     ▼
+                   CRI
+                     │
+                     ▼
+                containerd
+                     │
+                     ▼
+                   runc
+                     │
+                     ▼
+             nginx Container
+
+
+Kubernetes directly talks to containerd because it only needs containers to run.
+
+=============================
+Why Docker is not needed?
+=======================
+
+Kubernetes only wants:
+
+✅ Pull Image
+✅ Create Container
+✅ Start Container
+✅ Stop Container
+
+containerd can do all these jobs.
+
+So Docker became an extra layer:
+Kubernetes
+↓
+Docker
+↓
+containerd
+↓
+Container
+
+Kubernetes developers removed that extra dependency and now use:
+
+
+Kubernetes
+↓
+containerd
+↓
+Container
+
+===
+ctr
+===
+
+ctr means Containerd CLI (Command Line Interface)
+
+Docker Runtime      → docker command
+Containerd Runtime  → ctr command
+
+Docker
+
+docker images
+docker ps
+docker run nginx
+
+Containerd
+
+ctr images ls
+ctr containers ls
+ctr tasks ls
+
+ctr is the native command-line tool for containerd. It is used to pull images, create containers, and manage containerd directly.
+
+
+| Feature             | CTR                        | CRI                           | CRICTL                           |
+| ------------------- | -------------------------- | ----------------------------- | -------------------------------- |
+| Full Form           | Containerd CLI             | Container Runtime Interface   | CRI Command Line Tool            |
+| Type                | Command-line tool          | Interface/Protocol            | Command-line tool                |
+| Used By             | Admins                     | Kubernetes (Kubelet)          | Kubernetes Admins                |
+| Purpose             | Manage containerd directly | Connect Kubernetes to runtime | Troubleshoot runtime through CRI |
+| Is it a command?    | ✅ Yes                      | ❌ No                          | ✅ Yes                            |
+| Talks to            | containerd                 | containerd, CRI-O             | CRI                              |
+| Kubernetes uses it? | ❌ No                       | ✅ Yes                         | ❌ No                             |
+| Common Commands     | `ctr images ls`            | No commands                   | `crictl ps`                      |
+| Mostly Used For     | Containerd management      | Runtime communication         | Kubernetes troubleshooting       |
+
+
+
+
+
+Admin
+ │
+ ├── ctr
+ │     │
+ │     ▼
+ │  containerd
+ │
+ └── crictl
+       │
+       ▼
+      CRI
+       │
+       ▼
+   containerd
+
+--------------------------
+
+Kubernetes
+    │
+ Kubelet
+    │
+   CRI
+    │
+containerd
+    │
+   runc
+    │
+Container
+
+
+
+CTR     = Tool for containerd
+
+CRI     = Connector between Kubernetes and containerd
+
+CRICTL  = Tool for CRI
+
+
+ctr     → Admin → containerd
+
+CRI     → Kubernetes → containerd
+
+crictl  → Admin → CRI → containerd
+
+
+Kubernetes → CRI → containerd → runc → Container
+
+Admin → crictl → CRI → containerd
+
+Admin → ctr → containerd
+
+
+
+                    Kubernetes
+                         │
+                      Kubelet
+                         │
+                        CRI
+                         │
+                     containerd
+                         │
+                        runc
+                         │
+                     Container
+
+------------------------------------------------
+
+Admin
+ │
+ ├── ctr ───────────────► containerd
+ │
+ └── crictl ─► CRI ────► containerd
+
+
+CTR is a containerd command-line tool used to manage containers directly. CRI is the interface used by Kubelet to communicate with container runtimes such as containerd. CRICTL is a command-line tool that communicates with the container runtime through the CRI interface and is mainly used for Kubernetes troubleshooting.
+
+
+ctr :
+
+Directly manage containerd
+Create containers
+Manage containers
+
+
+crictl
+
+Inspect containers
+Check logs
+Check images
+Troubleshoot Kubernetes runtime
+
+
+kubectl  → Create Kubernetes resources
+
+CRI      → Bridge
+
+crictl   → Troubleshoot through the bridge
+
+ctr      → Directly manage containerd
+
+
+ctr = Manage containerd directly ✅
+
+crictl = Troubleshoot and inspect containers through CRI ✅
+
+kubectl = Create Pods/Deployments in Kubernetes ✅
+
+kubectl
+
+Used to manage Kubernetes resources:
+
+kubectl create deployment nginx --image=nginx
+kubectl get pods
+kubectl delete pod nginx
+
+Manages:
+
+Pod
+Deployment
+Service
+Ingress
+ConfigMap
+Secret
+Namespace
+
+
+ctr
+
+Used to manage containers directly in containerd:
+
+ctr images ls
+ctr image pull nginx
+ctr containers ls
+
+Manages:
+
+Images
+Containers
+Tasks
+Snapshots
+
+
+kubectl manages Kubernetes resources such as Pods, Deployments, and Services. ctr manages containers directly in containerd. While both can ultimately result in containers running, kubectl operates at the Kubernetes level, whereas ctr operates at the container runtime level.
+
+kubectl → Cluster Level
+
+ctr      → Container Level
+
+crictl   → Troubleshooting Level
+
+
+
+                    Kubernetes
+                         │
+                      Kubelet
+                         │
+                        CRI
+                         │
+                     containerd
+                         │
+                        runc
+                         │
+                     Container
+
+------------------------------------------------
+
+Admin
+
+├── kubectl ──► Kubernetes
+
+├── crictl ───► CRI ───► containerd
+
+├── ctr ──────► containerd
+
+└── nerdctl ──► containerd
+
+| Tool    | Used For                              |
+| ------- | ------------------------------------- |
+| kubectl | Manage Kubernetes resources           |
+| ctr     | Low-level containerd management       |
+| crictl  | Kubernetes runtime troubleshooting    |
+| nerdctl | Docker-like management for containerd |
+| docker  | Docker runtime management             |
+
+=============
+Before :
+========
+
+Kubelet:
+"Hey Docker, create a container."
+
+Docker:
+"Okay containerd, create a container."
+
+containerd:
+"Okay runc, create it."
+
+
+===
+now
+====
+
+
+Kubelet:
+"Hey containerd, create a container."
+
+containerd:
+"Okay runc, create it."
+
+
+
+| Item           | What is it?           | Who uses it?     | Purpose                            |
+| -------------- | --------------------- | ---------------- | ---------------------------------- |
+| **kubectl**    | CLI Command           | Kubernetes Admin | Manage Pods, Deployments, Services |
+| **ctr**        | CLI Command           | Containerd Admin | Manage containerd directly         |
+| **crictl**     | CLI Command           | Kubernetes Admin | Troubleshoot containers/runtime    |
+| **CRI**        | Interface (Not a CLI) | Kubelet          | Communicates with containerd       |
+| **containerd** | Runtime               | Kubernetes       | Runs containers                    |
+| **Docker**     | Container Platform    | Developers       | Build and run containers           |
+| **runc**       | Low-level Runtime     | containerd       | Actually creates container process |
+
+
+
+
+containerd = Runtime installed on worker node
+
+ctr = CLI used to access containerd
+
+CRI = Interface used by Kubelet to access containerd
+
+crictl = CLI used to access containerd through CRI
+
+containerd is the software that actually pulls images, creates containers, starts containers, stops containers, and manages containers.
+
+kubectl  → Manage Kubernetes resources
+
+CRI      → Bridge between Kubelet and containerd
+
+containerd → Container Runtime
+
+ctr      → Directly manage containerd
+
+crictl   → Troubleshoot containerd through CRI
+
+
+
+

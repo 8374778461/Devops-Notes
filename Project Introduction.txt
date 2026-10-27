@@ -1,0 +1,223 @@
+Project Introduction
+
+Project Name: IES (Integrated Eligibility System)
+
+Client: Rhode Island State Government (USA)
+
+Domain: Healthcare & Welfare Benefits
+
+Simple Definition
+
+IES is a government application used to determine whether a citizen is eligible for various welfare and healthcare programs and to provide benefits accordingly.
+
+Programs covered:
+
+SNAP (Food Assistance)
+Medicaid
+Medicare
+CCAP (Child Care Assistance Program)
+QHP
+RIW (Rhode Island Works)
+
+Architecture Overview :
+
+UI
+ ↓
+Microservices/APIs
+ ↓
+Database
+
+
+
+SSA API
+Redis
+AWS S3
+
+
+Modules in the Project
+=====================
+1. Admin Module
+===================
+
+Used by administrators.
+
+Responsibilities:
+Create plans
+Manage programs
+Generate reports
+Configure applications
+
+
+Admin creates SNAP Plan
+Admin creates Medicaid Plan
+
+==========================
+2. UM (User Management)
+=======================
+Used for user management.
+
+Responsibilities:
+Registration
+Login
+Role Management
+Case Worker Management
+
+Example:
+Citizen Registration
+Case Worker Creation
+
+======================
+3. AR (Application Registration)
+==============================
+
+Citizen submits application.
+Example:
+Name
+DOB
+SSN
+Address Application gets generated.
+
+=========================
+4. DC (Data Collection)
+=======================
+Collects citizen data.
+
+Example:
+
+Income
+Education
+Employment
+Family Details
+Property Details
+
+All information stored in database.
+
+=======================
+5. ED (Eligibility Determination)
+===========================
+
+Most important module.
+
+System checks:
+
+Income
+Family Size
+Age
+Employment Status
+
+
+Income < Threshold
+       ↓
+Eligible
+
+
+Income > Threshold
+       ↓
+Not Eligible
+
+====================
+6. CO (Correspondence Module)
+=======================
+
+Approved Notice
+Rejected Notice
+Pending Notice
+
+Documents generated as PDF.
+
+Stored in:
+
+AWS S3
+
+===============
+8. Reports Module
+===================
+
+Generates reports for government users.
+
+Examples:
+
+Approved Applications
+Rejected Applications
+Monthly Reports
+
+==================
+External Systems
+=================
+
+SSA-WEB API
+SSA = Social Security Administration
+
+Used to validate:
+
+SSN
+
+Citizen Information
+
+Before approving application.
+
+Redis
+Used as Cache.
+Purpose:
+Reduce Database Calls
+Improve Performance
+
+=========
+AWS S3
+=========
+
+Used to store:
+
+PDF Documents
+Letters
+Reports
+
+
+
+Citizen Login
+     ↓
+Application Registration (AR)
+     ↓
+Data Collection (DC)
+     ↓
+Eligibility Determination (ED)
+     ↓
+SSA Validation
+     ↓
+Approved / Rejected
+     ↓
+Correspondence Notice (CO)
+     ↓
+Benefit Issuance (BI)
+     ↓
+Reports Generation
+
+
+I worked on the Integrated Eligibility System (IES) project for the Rhode Island State Government. The application is used to determine citizen eligibility for welfare and healthcare programs such as SNAP, Medicaid, Medicare, CCAP, and RIW. The project consists of modules like Admin, User Management, Application Registration, Data Collection, Eligibility Determination, Correspondence, Benefit Issuance, and Reports. A citizen submits an application, the system collects required information, verifies eligibility based on business rules, generates approval or rejection notices, and issues benefits for eligible citizens. The application was developed using Java, Spring Boot, REST APIs, database integration, Redis caching, AWS S3 document storage, and external SSA services.
+
+
+Version 1 (Best for Interviews)
+
+Hi, my name is Omprakash Reddy. I have around 3 years of experience in application development and support. I have worked on the IES (Integrated Eligibility System) project for the Rhode Island State Government, which is a healthcare and benefits management application. My primary responsibilities include developing and enhancing REST APIs using Java and Spring Boot, working with databases, fixing production issues, implementing business requirements, and collaborating with QA and business teams. I have also been involved in code reviews, deployments, and troubleshooting application issues. Currently, I am focusing on expanding my skills in DevOps technologies such as Git, Docker, Kubernetes, AWS, and CI/CD.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,29 @@
+Before rebase :
+
+master
+
+A --- B --- C
+
+feature
+
+A --- B --- D --- E
+
+Then master gets a new commit:
+
+master
+
+A --- B --- C --- F
+
+feature
+
+A --- B --- D --- E
+
+git checkout feature
+git rebase master
+
+
+A --- B --- C --- F --- D' --- E'
+
+Rebase takes my feature branch commits and reapplies them on top of the latest master branch. This creates a clean linear history without a merge commit.
+
+so what are the files are added in master that files commit are placed on the top of the feauture branch

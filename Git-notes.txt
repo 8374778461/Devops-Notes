@@ -1,0 +1,188 @@
+Working Directory is the project folder where developers modify files. Staging Area is a temporary area where selected changes are prepared for commit. Local Repository is the Git database stored in the .git folder on the local machine. Remote Repository (GitHub) is the centralized repository used for collaboration and sharing code.
+
+=======================================================
+1. Working Directory = Local Folder in Your Computer
+==========================================================
+
+
+Example:
+
+D:\Projects\JavaApp
+
+Contains:
+Hello.java
+pom.xml
+application.properties
+
+
+Here you create, edit, and delete files.
+
+✅ Actual project folder
+
+2. Staging Area = Ready for Commit
+
+When you run:
+
+git add Hello.javas
+
+Git says:
+
+"Okay, I will include this file in the next commit."
+
+Think of it as a basket/cart before checkout.
+
+Working Directory
+
+↓ git add
+
+Staging Area
+
+
+✅ Selected changes are waiting to be committed.
+
+3. Local Repository = Git Database (.git)
+
+When you run:
+git commit -m "Added Hello.java"
+
+Git stores a snapshot inside the hidden:
+
+
+.git
+
+folder.
+
+Project
+│
+├── Hello.java
+└── .git
+ 
+Show more lines
+
+✅ Complete commit history stored on your laptop.
+
+Think:
+Commit1
+Commit2
+Commit3
+
+All are stored in the Git database.
+
+4. GitHub = Central Repository
+
+When you run:
+
+git push origin main
+
+Your local commits are copied to GitHub.
+Your Laptop
+↓
+GitHub
+
+====
+git Init
+======
+git init initializes a new Git repository by creating a hidden .git directory in the project folder. The .git directory stores commit history, branches, staging information, and repository configuration.
+
+
+Untracked Files means:
+
+Git sees the file in your folder, but Git is not yet tracking it.
+
+Working Directory
+│
+└── test.txt
+
+
+✅ File exists in your computer
+
+❌ Git has not added it to its database
+
+❌ Git will not include it in a commit
+
+
+Create File
+    ↓
+Untracked
+
+git add
+    ↓
+Tracked + Staged
+
+git commit
+    ↓
+Tracked + Saved in Local Repo
+
+git push
+    ↓
+Tracked + Saved in GitHub
+
+==================
+Create my Own Local Folder with Out Clone 
+========================================
+git init
+
+git add .
+git commit -m "First Commit"
+
+
+Then create a repository in GitHub and connect it:
+
+
+git remote add origin <github-url>
+
+Then:
+
+git push -u origin master
+Show more lines
+
+✅ No need to clone.
+
+
+================
+Git -Rebase
+==============
+Before rebase :
+
+master
+
+A --- B --- C
+
+feature
+
+A --- B --- D --- E
+
+Then master gets a new commit:
+
+master
+
+A --- B --- C --- F
+
+feature
+
+A --- B --- D --- E
+
+git checkout feature
+git rebase master
+
+
+A --- B --- C --- F --- D' --- E'
+
+Rebase takes my feature branch commits and reapplies them on top of the latest master branch. This creates a clean linear history without a merge commit.
+
+so what are the files are added in master that files commit are placed on the top of the feauture branch
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,279 @@
+Replicaset :
+
+A ReplicaSet mainly provides:
+
+✅ Maintain desired number of Pods
+ ✅ Scale Up Pods
+
+Scale -up pods :
+kubectl scale rs my-rs --replicas=5
+
+
+scale-down-pods :
+kubectl scale rs my-rs --replicas=2
+
+❌ Rolling Updates (not native)
+ ❌ Rollback
+ ❌ Revision History
+
+============
+Deployment:
+==============
+
+Deployment manges the replicaset and provides :
+
+✅ Scale Up / Scale Down
+kubectl scale deployment nginx-deploy --replicas=5
+
+✅ Rolling Updates
+kubectl set image deployment/nginx-deploy nginx=nginx:1.25
+
+✅ Rollback
+kubectl rollout undo deployment/nginx-deploy
+
+
+✅ Revision History
+kubectl rollout history deployment/nginx-deploy
+
+✅ Pause/Resume Rollouts
+kubectl rollout pause deployment/nginx-deploy
+kubectl rollout resume deployment/nginx-deploy
+
+
+========
+Rollback : 
+================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.24
+
+kubectl apply -f deployment.yaml
+
+Check Deployment :
+
+kubectl get deploy
+kubectl get rs
+kubectl get pods
+
+output :
+
+NAME           READY   UP-TO-DATE
+nginx-deploy   3/3     3
+
+ReplicaSets:
+nginx-deploy-7fd5b8d9c6
+
+=========
+now update to v2
+=============
+kubectl set image deployment/nginx-deploy nginx=nginx:1.25
+=================================
+check the update the version :
+===================================
+
+kubectl rollout status deployment/nginx-deploy
+
+now v2 has some issues rollback the previous version :
+==============================================
+kubectl rollout undo deployment/nginx-deploy
+===============================================
+
+check the previous version 
+
+kubectl describe deployment nginx-deploy
+
+o/p: Image: nginx:1.24
+
+==============
+Rolling Update :
+===============
+
+Rolling Update means updating an application gradually without downtime.
+
+Instead of stopping all old pods and creating new ones, Kubernetes replaces pods one by one (or in batches) so users can continue accessing the application.
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deploy
+spec:
+  replicas: 3
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+
+  selector:
+    matchLabels:
+      app: nginx
+
+  template:
+    metadata:
+      labels:
+        app: nginx
+
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.24
+        ports:
+        - containerPort: 80
+
+
+kubectl apply -f deployment.yaml
+
+
+then we want update new version for all pods 
+
+
+kubectl set image deployment/nginc-deploy nginx=nginx:.25
+
+
+check the status of update :
+
+kubectl rollout status deployment/nginx-deploy
+
+check history :
+
+kubectl rollout history deployment/nginx-deploy
+
+how it works internally :
+
+with 3 replicas 
+
+old pods : 3
+
+during update :
+Old Pods: 2
+New Pods: 1
+
+then :
+Old Pods: 1
+New Pods: 2
+
+
+finally :
+Old Pods: 0
+New Pods: 3
+
+
+✅ No downtime
+ ✅ Gradual replacement of Pods
+ ✅ Rollback supported with Deployment
+
+
+
+kubectl apply -f deployment.yaml
+
+kubectl scale deployment nginx-deploy --replicas=5
+
+kubectl set image deployment/nginx-deploy nginc=nginx:1.25
+
+kubectl rollout status deployment/nginx-deploy
+
+kubectl rollout undo deployment/nginx-deploy
+
+
+
+ReplicaSet is used to maintain the desired number of Pods and provides self-healing and scaling. Deployment is a higher-level Kubernetes object that manages ReplicaSets and provides advanced features like rolling updates, rollback, and revision history. In real-time projects, we generally use Deployments instead of directly creating ReplicaSets.
+
+
+ReplicaSet = Pod Manager
+
+Deployment = ReplicaSet Manager
+             + Rolling Update
+             + Rollback
+             + Version History
+
+Feature			ReplicaSet				Deployment
+
+Purpose	Maintains 	desired number of Pods		Manages ReplicaSets and Pods
+Scale Up/Down		✅ Yes						✅ Yes
+Self-Healing		✅ Yes						✅ Yes
+Rolling Update		❌ No						✅ Yes
+Rollback		❌ No						✅ Yes
+Revision History	❌ No						✅ Yes
+Pause/Resume Updates	❌ No						✅ Yes
+Production Usage	Rarely used directly				✅ Mostly used
+
+
+=====================
+Overview of Deployment
+=========================
+Deployment in Kubernetes is an object that manages your Pods and ReplicaSets.
+
+It helps you:
+
+✅ Create Pods
+✅ Scale Pods up/down
+✅ Perform Rolling Updates
+✅ Rollback to previous version
+✅ Self-heal failed Pods
+
+Suppose you have a Java application and want 3 copies (Pods) running all the time.
+
+Instead of creating Pods manually, you create a Deployment.
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-app
+spec:
+  replicas: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: java-app
+  template:
+    metadata:
+      labels:
+        app: java-app
+    spec:
+      containers:
+      - name: java-app
+        image: my-java-app:v1
+``
+
+What Happens?
+Deployment creates a ReplicaSet.
+ReplicaSet creates 3 Pods.
+If a Pod crashes, ReplicaSet creates a new one.
+If you update the image version, Deployment performs a r
+
+
+kubectl apply -f deployment.yaml
+
+kubectl get deployments
+
+kubectl get pods
+
+kubectl scale deployment java-app --replicas=5
+
+kubectl set image deployment/java-app java-app=my-java-app:v2
+
+kubectl rollout status deployment/java-app
+
+kubectl rollout undo deployment/java-app
+
+
+

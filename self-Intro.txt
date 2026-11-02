@@ -1,0 +1,93 @@
+Good morning, and thank you for giving me this opportunity to introduce myself.
+
+My name is [Your Name], and I have around **3 years of experience as a Python Developer**. I have mainly worked on backend development, building and maintaining web applications and REST APIs.
+
+My primary technical skills include **Python, Django/Flask, REST APIs, SQL, PostgreSQL/MySQL, Git, and basic Docker**. I have good knowledge of Python concepts such as **OOP, exception handling, collections, functions, modules, and file handling**. I have also worked with API development and database integration.
+
+In my current project, I am mainly responsible for developing backend features, creating and integrating REST APIs, working with databases, fixing bugs, and participating in testing and code reviews. I also work with the team to understand requirements and deliver features within the given timelines.
+
+One of my strengths is that I am a quick learner and comfortable working on new requirements and technologies. I also focus on writing clean, maintainable, and reusable code.
+
+I am now looking for an opportunity where I can use my Python backend experience, take on more challenging responsibilities, and continue growing as a software developer.
+
+That's a brief introduction about me. Thank you
+
+=====================
+### Project: Integrated Eligibility System (IES)
+
+The **Integrated Eligibility System**, or IES, is a backend application used to determine whether a person is eligible for different benefits or programs based on their personal, financial, and eligibility information.
+
+I worked as a **Python Backend Developer** on this project. My main responsibility was developing backend APIs, implementing business logic, working with the database, and fixing issues.
+
+The application follows a typical **client → REST API → business logic → database** architecture.
+
+For example, when a user submits an application, the request comes to our REST API. The backend validates the applicant's information and applies the required eligibility rules. Based on the result, the system determines whether the applicant is eligible, not eligible, or requires additional information.
+
+### Technologies Used
+
+- **Python** – Backend development
+- **Django / Django REST Framework** – REST API development
+- **PostgreSQL / MySQL** – Database
+- **REST APIs** – Communication between systems
+- **Git** – Version control
+- **Docker** – Containerization
+- **Pytest / Unit Testing** – Testing
+
+### My Responsibilities
+
+My major responsibilities were:
+
+1. Developing REST APIs using Python and Django REST Framework.
+2. Implementing business logic for eligibility calculation.
+3. Performing input validation and handling exceptions.
+4. Creating and modifying database models and queries.
+5. Integrating APIs with the database.
+6. Writing unit test cases for backend functionality.
+7. Debugging and fixing production and development issues.
+8. Using Git for source-code management.
+9. Participating in code reviews and team discussions.
+10. Working with other developers and testers to deliver new features.
+
+### Example Flow
+
+Suppose an applicant submits:
+
+- Age
+- Income
+- Family information
+- Employment information
+- Residential information
+
+The request reaches our API:
+
+**Client**
+↓  
+**REST API**
+↓  
+**Validation**
+↓  
+**Business/Eligibility Logic**
+↓  
+**Database**
+↓  
+**Eligibility Result**
+↓  
+**Response to Client**
+
+For example, if the income is below a particular threshold and the applicant satisfies the other required conditions, the system can mark the applicant as **eligible**.
+
+### How I Explain It in an Interview
+
+If the interviewer asks **"Explain your project"**, I would say:
+
+"My project is an Integrated Eligibility System, which is a backend application used to determine the eligibility of applicants for different benefits or programs.
+
+I worked as a Python Backend Developer. We used Python with Django and Django REST Framework to develop REST APIs, and PostgreSQL for data storage.
+
+When an applicant submits their information, the request comes to our REST API. We validate the request, apply the required business rules, retrieve or update the required information in the database, and return the eligibility result.
+
+My responsibilities included developing REST APIs, implementing business logic, database operations, exception handling, unit testing, debugging, and fixing issues.
+
+For example, one of the APIs receives applicant details such as income, age, and family information. The backend validates the data and applies the eligibility rules. Based on those rules, it returns the appropriate eligibility status.
+
+I also worked with Git for version control and participated in code reviews and testing. Overall, my main focus was on developing and maintaining the Python backend services."

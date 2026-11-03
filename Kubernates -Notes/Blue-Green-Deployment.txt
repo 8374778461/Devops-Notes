@@ -1,0 +1,214 @@
+===================
+Blue -Green Deployment 
+======================
+Blue-Green Deployment is a deployment strategy to release a new version with zero/minimum downtime.
+
+Blue  = Current Version (v1) ✅
+Green = New Version (v2) ✅
+
+
+Advantages 
+
+✅ Rapid Releasing: Deploy new version quickly.
+
+✅ Simple Rollbacks
+
+If Green fails:
+
+Green ❌
+Switch back to Blue ✅
+
+Rollback takes seconds.
+
+✅ Built-in Disaster Recovery: Blue environment is always available as backup
+
+✅ Seamless Customer Experience: Users don't notice deployment activity.
+
+✅ Zero Downtime
+
+Both environments run simultaneously.
+No service interruption.
+
+
+Example :
+
+suppose :
+
+Blue  = myapp:v1
+Green = myapp:v2
+
+Users use v1.--->Deploy v2 to Green.---->Test Green.---->Switch Service/Load Balancer to Green.
+
+If issue occurs:
+
+Green ❌
+Switch back to Blue ✅
+
+
+============
+Blue.yaml (V1)
+==============
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: k8s-boot-demo-deployment-blue
+
+spec:
+  replicas: 3
+
+  strategy:
+    type: RollingUpdate
+
+  selector:
+    matchLabels:
+      app: k8s-boot-demo
+      version: v1
+      color: blue
+
+  template:
+    metadata:
+      labels:
+        app: k8s-boot-demo
+        version: v1
+        color: blue
+
+    spec:
+      containers:
+      - name: k8s-boot-demo
+        image: ashokit/javawebapp
+        imagePullPolicy: Always
+
+        ports:
+        - containerPort: 8080
+
+=================
+Blue-service-yaml(V1): To expose the Blue V1 using Node port Service
+===================
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: k8s-boot-demo-service
+
+spec:
+  type: NodePort
+
+  selector:
+    app: k8s-boot-demo
+    version: v1
+
+  ports:
+  - name: app-port-mapping
+    protocol: TCP
+    port: 80
+    targetPort: 8080
+    nodePort: 30090
+
+
+Then how to connect the sevice and Blue.yaml (V1) is selector in Service yaml match the pod label/selector  name of blue .yaml then comnnected these3 service (Important)
+
+=====
+Green.yaml(V2)
+===========
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: k8s-boot-demo-deployment-green
+
+spec:
+  replicas: 3
+
+  strategy:
+    type: RollingUpdate
+
+  selector:
+    matchLabels:
+      app: k8s-boot-demo
+      version: v2
+      color: green
+
+  template:
+    metadata:
+      labels:
+        app: k8s-boot-demo
+        version: v2
+        color: green
+
+    spec:
+      containers:
+      - name: k8s-boot-demo
+        image: ashokit/javawebapp
+        imagePullPolicy: Always
+
+        ports:
+        - containerPort: 8080
+
+===================
+Service.yaml--Green(V2) :  To expose the Green  V2 using Node port Service
+=======================
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: k8s-boot-demo-service-preprod
+
+spec:
+  type: NodePort
+
+  selector:
+    app: k8s-boot-demo
+    version: v2
+
+  ports:
+  - name: app-port-mapping
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
+    nodePort: 30092
+
+
+1. Currently traffic is going to V1 (Blue ) service. There is new version will come i.e is Green (V2).Usesrs are acessing the V1 but we need to change to V2.
+
+ 
+How to divert the traffic v1 to V2
+
+So for blue service selector V1 is there . we will change to V2 (Important)
+======================
+Blue-service-yaml(V1):
+=======================
+Changed to V2 in Blue-Service .
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: k8s-boot-demo-service
+
+spec:
+  type: NodePort
+
+  selector:
+    app: k8s-boot-demo
+    version: v2----------------------------(This the Important) We can Change to V1 To V1
+
+  ports:
+  - name: app-port-mapping
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
+    nodePort: 30090
+
+---> The service which is wxposed the outside just change the Selector 
+
+----> In V2 code is not working after 1 Hr again we roll back to  V1 in Blue.yaml selectors we can Change V2 to V1
+
+
+
+Rolling Update : It is a Stratergy How you create and manage the pods.
+
+Blue-Green--> It is an approach divert the Traffic.

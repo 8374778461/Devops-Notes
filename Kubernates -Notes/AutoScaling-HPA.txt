@@ -1,0 +1,247 @@
+Auto-Scaling
+=============
+
+Based on traffic increased the pods and decrease the pods
+
+1. Horitizontal Pod  Autoscalling
+
+2. Vertical Scalling 
+
+
+--->Horizontal scaling increasing the number of instances
+
+Increase the number of servers/pods.
+
+======
+Before
+=======
+1-> pod
+
+=====
+After
+====
+3-> pods 
+
+
+✅ More traffic handled
+ ✅ High availability
+ ✅ Kubernetes Auto Scaling uses this
+
+
+--->vertical scaling means increasing capacity of system
+
+4gb---> 100 GB (not recommended)
+
+Increase CPU/RAM of the same server/pod.
+
+======
+Before
+======
+
+CPU: 2 Core
+RAM: 4 GB
+
+======
+After:
+========
+
+CPU: 8 Core
+RAM: 16 GB
+
+✅ More power to same machine
+ ❌ Has a limit
+
+
+
+For real time Auto scakling works on trafic --->i.e is based on metrics.
+
+We install Metric Server.
+
+kubectl top nodes 
+
+Kubectl top pods-----> we get a Metrics API not avaiilable
+
+
+So we need to install Metrics using Git repo--->Ashok sir notes.
+
+
+========
+Scenerio-Real time
+===============
+Your e-commerce application gets huge traffic during a sale.
+
+Initially:
+
+2 Pods
+      ↓
+CPU Usage = 30%
+
+======
+Suddenly thousands of users come.
+
+2 Pods
+      ↓
+CPU Usage = 85%
+
+
+=========
+HPA detects high CPU and automatically creates more pods.
+
+2 Pods → 4 Pods → 6 Pods
+
+
+========
+When traffic drops:
+
+6 Pods → 3 Pods → 2 Pods
+
+
+This saves cost and prevents application crashes.
+
+Step 1: Deployment
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springboot-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: springboot-app
+  template:
+    metadata:
+      labels:
+        app: springboot-app
+    spec:
+      containers:
+      - name: springboot-app
+        image: myrepo/springboot-app:v1
+        ports:
+        - containerPort: 8080
+
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+
+Step 2: Create HPA
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: springboot-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: springboot-app
+
+  minReplicas: 2
+  maxReplicas: 10
+
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+
+
+
+kubectl get hpa
+
+Load testing pod.
+
+Generate Load --> Terminal -1 --kubectl get hpa
+
+terminal-2---> We craete a pod and inside a pod increase thhe Load 
+
+Terminal 2--->kubectl run load-generator \
+--image=busybox \
+--rm -it -- /bin/sh
+
+
+Inside pod ;
+
+while true; do
+  wget -q -O- http://springboot-app-service
+done
+
+Continously sending the request.
+
+We create a temporary BusyBox pod and continuously send requests to the application service using a while loop with wget. This generates load on the application, allowing us to test HPA behavior and observe Kubernetes automatically scaling pods based on CPU or memory utilization.
+
+=============
+Service YAML
+===============
+apiVersion: v1
+kind: Service
+metadata:
+  name: springboot-app-service
+spec:
+  selector:
+    app: springboot-app
+
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+
+  type: ClusterIP
+
+
+
+====================================
+
+
+resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+
+
+
+
+Requests = Minimum Guaranteed
+
+✅ Pod needs at least:
+
+CPU = 200m = 0.2 CPU Core
+Memory = 256 MB
+
+Example :
+
+
+Node:
+CPU = 2 Core
+RAM = 4 GB
+
+Pod Requests:
+CPU = 0.2 Core
+RAM = 256 MB
+
+Kubernetes says:
+
+✅ "Enough resources available. Schedule this pod."
+
+
+Limits = Maximum Allowe
+
+This means:
+
+✅ Pod can use up to:
+
+CPU = 0.5 Core
+Memory = 512 MB//
+

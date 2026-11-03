@@ -1,0 +1,437 @@
+Developer
+    ↓
+Write Code
+    ↓
+Git Push
+    ↓
+GitHub
+    ↓
+Webhook
+    ↓
+Jenkins
+    ↓
+Build JAR
+    ↓
+Run Unit Tests
+    ↓
+Build Docker Image
+    ↓
+Push Image (Docker Hub/ECR)
+    ↓
+Terraform
+    ↓
+Create AWS Infrastructure
+    ↓
+Ansible
+    ↓
+Install Docker/K8s Packages
+    ↓
+Kubernetes
+    ↓
+Pull Docker Image
+    ↓
+Create Pods
+    ↓
+Service
+    ↓
+Load Balancer
+    ↓
+Users Access Application
+
+Developer pushes code to GitHub. Jenkins builds the application, creates a Docker image, and pushes it to a registry. Terraform creates infrastructure, 
+Ansible configures servers, and Kubernetes deploys and manages the Docker containers with auto-scaling and self-healing.
+
+
+Users normally access the application through a DNS name or AWS Load Balancer URL. The Load Balancer forwards traffic to Kubernetes Services, which then route requests to the running Pods. Users never directly access Pod IPs because Pods are temporary and can change at any time.
+
+GitHub     -> Stores Code
+Jenkins    -> CI/CD Automation
+Docker     -> Package Application
+Terraform  -> Create Infrastructure
+Ansible    -> Configure Infrastructure
+Kubernetes -> Run & Manage Containers
+AWS/Azure  -> Cloud Platform
+
+
+
+=========================================================
+
+Let's say you're working for Amazon.
+
+You develop a Spring Boot application.
+
+=========================
+Step 1: Developer Writes Code
+=============================
+
+You write:
+
+Java
+@RestController
+public class HelloController {
+ 
+@GetMapping("/hello")
+public String hello() {
+return "Hello Amazon";
+}
+}
+================
+Local testing:
+================
+
+Ex
+
+mvn spring-boot:run
+
+Works fine ✅
+============================
+Step 2: Push Code to GitHub
+=======================
+
+Ex
+git add .
+git commit -m "Added hello API"
+git push origin main
+
+Now code is stored in GitHub.
+
+===============
+Why GitHub?
+==============
+
+Without GitHub:
+
+Code only in your laptop
+Team can't access it
+No version history
+
+==========
+With GitHub:
+===========
+
+Central repository
+Code reviews
+Version control
+
+==========================
+Step 3: Jenkins Triggered
+============================
+
+GitHub webhook notifies Jenkins.
+
+
+Developer Push
+↓
+GitHub
+↓
+Jenkins Job Triggered
+
+Jenkins Pipeline:
+
+Groovy
+Build
+Test
+Docker Build
+Deploy
+====================================
+Step 4: Jenkins Builds Application
+=========================
+
+Ex
+mvn clean package
+
+target/app.jar
+
+Now Java code becomes executable JAR.
+
+Problem Now 🤔
+
+Production server doesn't have:
+
+Java 17
+Maven
+Dependencies
+
+Application may fail.
+
+=========================
+Step 5: Docker Comes Here
+===========================
+
+We package everything together.
+
+Dockerfile:
+
+Dockerfile
+FROM openjdk:17
+ 
+COPY target/app.jar app.jar
+ 
+ENTRYPOINT ["java","-jar","app.jar"]
+
+Build image:
+
+Ex
+docker build -t amazon-app:v1 .
+
+Image contains:
+
+Application
+Java
+Dependencies
+Libraries
+
+Together.
+
+Why Docker?
+
+Without Docker:
+
+Plain Text
+Works in Dev
+Fails in QA
+Fails in Prod
+
+Common issue:
+
+Plain Text
+Works on my machine
+
+Docker solves this.
+
+
+Same container
+Same behavior everywhere
+
+=============================
+Step 6: Push Docker Image
+=========================
+
+docker push amazon/app:v1
+
+Stored in:
+
+Docker Hub
+OR
+AWS ECR
+OR
+Azure ACR
+Infrastructure Needed
+
+We need:
+
+VMs
+Network
+Load Balancer
+Security Groups
+
+Who creates them?
+=======================
+Step 7: Terraform
+========================
+
+Infrastructure as Code
+
+Terraform creates cloud resources.
+
+Example:
+
+Terraform
+resource "aws_instance" "web" {
+ami = "ami-123"
+instance_type = "t3.medium"
+}
+
+Run:
+
+Ex
+terraform init
+terraform plan
+terraform apply
+
+AWS automatically creates:
+
+EC2 Servers
+VPC
+Subnets
+Load Balancer
+Why Terraform?
+
+Without Terraform:
+
+Plain Text
+Login AWS
+Click buttons
+Create server manually
+
+Time-consuming.
+
+With Terraform:
+
+
+One command
+Ex
+terraform apply
+
+Entire infrastructure created.
+
+==================
+Step 8: Ansible
+==================
+
+VM created by Terraform is empty.
+
+Example:
+Ubuntu Installed
+Nothing Else
+
+Need:
+
+Java
+Docker
+Configuration
+Users
+Permissions
+
+Install automatically.
+
+Example:
+
+YAML
+- hosts: servers
+tasks:
+- name: Install Docker
+apt:
+name: docker.io
+state: present
+
+Run:
+
+Ex
+ansible-playbook docker.yml
+Why Ansible?
+
+Terraform says:
+
+Create Server
+
+Ansible says:
+
+
+Configure Server
+Easy Interview Line
+Plain Text
+Terraform provisions infrastructure.
+Ansible configures infrastructure.
+
+========================
+Step 9: Kubernetes
+=========================
+
+Now imagine traffic increases.
+
+One container is not enough.
+
+================
+Without Kubernetes:
+==================
+
+Docker Container
+↓
+Container Crash
+↓
+Application Down
+
+Kubernetes Solution
+
+Create Deployment:
+
+YAML
+replicas: 3
+Plain Text
+Pod 1
+Pod 2
+Pod 3
+
+User traffic distributed.
+
+What Happens If Pod Crashes?
+Plain Text
+Pod 2 Crashed
+
+Kubernetes detects.
+
+Immediately:
+
+Plain Text
+Create New Pod
+
+Automatically.
+
+No manual work.
+
+Why Kubernetes?
+1. Auto Healing
+Plain Text
+Pod Dead
+↓
+New Pod Created
+2. Scaling
+
+Traffic increases.
+
+YAML
+replicas: 10
+
+Now:
+
+Plain Text
+10 Pods
+3. Rolling Updates
+
+Old Version:
+
+Plain Text
+v1
+
+New Version:
+
+Plain Text
+v2
+
+Kubernetes replaces:
+
+Plain Text
+One Pod at a Time
+
+No downtime.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

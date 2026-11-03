@@ -1,0 +1,921 @@
+========
+Label :
+=====
+
+Label = Name Tag for a Pod
+
+labels:
+  app: java-app
+
+============
+Selector
+=========
+
+Selector = Search Mechanism
+
+selector:
+  app: java-app
+
+"Find all Pods having app=java-app"
+
+Labels are key-value pairs attached to Pods for identification. Selectors are used by Kubernetes objects like Services, ReplicaSets, and Deployments to find and manage Pods based on those labels.
+
+
+=======================
+Replication Controller
+=========================
+
+ 			1. Used to create multiple pods and it will make sure pods always running.
+
+			2. Using this we can achieve High Availability 
+			
+			3. Replication Controller and Pods are associated with Labels and Selectors
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: javawebapprc
+spec:
+  replicas: 3
+
+  selector:
+      app: java-app
+
+  template:
+    metadata:
+      name: javawebappPod
+      labels:
+        app: java-app
+
+    spec:
+      containers:
+      - name: java-container
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+
+✅ Maintains Pod count
+ ✅ Self-healing
+ ✅ High Availability
+
+
+
+
+============
+Replicaset :
+================
+
+
+ReplicaSet is a Kubernetes controller that maintains the required number of Pods.
+
+we can scale up and scale down pods using Replicaset
+
+Both Replication controller and Replicaset are same but replication controller is old 
+
+The difference between replication Controller and ReplicaSet IS Selector 
+
+1.  (RC)--Equlity Selector-> Only Exact Matching & apiVersion RC-->V1
+
+2.  (RS)--Equlity Selector,Set based Seklector--> Supports advanced Label Selectors  & Rs --> apps/v1
+
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: javawebapprs
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: java-app
+
+  template:
+    metadata:
+      name: javawebappPod
+      labels:
+        app: java-app
+
+    spec:
+      containers:
+      - name: java-container
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+
+A ReplicaSet mainly provides:
+
+✅ Maintain desired number of Pods
+ ✅ Scale Up Pods
+
+Scale -up pods :
+kubectl scale rs my-rs --replicas=5
+
+
+scale-down-pods :
+kubectl scale rs my-rs --replicas=2
+
+❌ Rolling Updates (not native)
+ ❌ Rollback
+ ❌ Revision History
+
+
+
+======
+Daemon Set: One pod on Every Node 
+========
+DaemonSet is a Kubernetes controller that ensures one Pod runs on every worker node.
+
+
+3 Nodes
+   ↓
+DaemonSet
+   ↓
+3 Pods
+
+
+5 Nodes
+   ↓
+DaemonSet
+   ↓
+5 Pods
+
+Real -Time -use cases :
+
+I need Logs for every node so i install Fluentd on every node 
+
+Node-1 → Fluentd
+Node-2 → Fluentd
+Node-3 → Fluentd
+
+Collect logs from all nodes 
+
+So How many worker nodes have that amount of Pods are created.
+
+Replicas Not applicable for Deamonset
+
+1. logs Collection
+2. Node monitoring
+
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: logging
+
+spec:
+  selector:
+    matchLabels:
+      app: httpd-logging
+
+  template:
+    metadata:
+      labels:
+        app: httpd-logging
+
+    spec:
+      containers:
+      - name: webserver
+        image: httpd
+        ports:
+        - containerPort: 80
+
+
+
+
+============
+Deployment:
+==============
+
+Deployment manges the replicaset and provides :
+
+✅ Scale Up / Scale Down
+kubectl scale deployment nginx-deploy --replicas=5
+
+✅ Rolling Updates
+kubectl set image deployment/nginx-deploy nginx=nginx:1.25
+
+✅ Rollback
+kubectl rollout undo deployment/nginx-deploy
+
+
+✅ Revision History
+kubectl rollout history deployment/nginx-deploy
+
+✅ Pause/Resume Rollouts
+kubectl rollout pause deployment/nginx-deploy
+kubectl rollout resume deployment/nginx-deploy
+
+
+========
+Rollback : Going back to the previous working version.
+================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.24
+
+kubectl apply -f deployment.yaml
+
+Check Deployment :
+
+kubectl get deploy
+kubectl get rs
+kubectl get pods
+
+output :
+
+NAME           READY   UP-TO-DATE
+nginx-deploy   3/3     3
+
+ReplicaSets:
+nginx-deploy-7fd5b8d9c6
+
+=========
+now update to v2
+=============
+kubectl set image deployment/nginx-deploy nginx=nginx:1.25
+=================================
+check the update the version :
+===================================
+
+kubectl rollout status deployment/nginx-deploy
+
+now v2 has some issues rollback the previous version :
+==============================================
+kubectl rollout undo deployment/nginx-deploy
+===============================================
+
+check the previous version 
+
+kubectl describe deployment nginx-deploy
+
+o/p: Image: nginx:1.24
+
+==============
+Rolling Update :
+===============
+
+Rolling Update means updating an application gradually without downtime.
+
+Instead of stopping all old pods and creating new ones, Kubernetes replaces pods one by one (or in batches) so users can continue accessing the application.
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deploy
+spec:
+  replicas: 3
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+
+  selector:
+    matchLabels:
+      app: nginx
+
+  template:
+    metadata:
+      labels:
+        app: nginx
+
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.24
+        ports:
+        - containerPort: 80
+
+
+kubectl apply -f deployment.yaml
+
+
+Then we want update new version for all pods 
+
+
+kubectl set image deployment/nginc-deploy nginx=nginx:.25
+
+==========================
+check the status of update :
+==========================
+kubectl rollout status deployment/nginx-deploy
+
+===========
+check history :
+==================
+kubectl rollout history deployment/nginx-deploy
+
+
+how it works internally :
+
+with 3 replicas 
+
+old pods : 3
+
+during update :
+Old Pods: 2
+New Pods: 1
+
+then :
+Old Pods: 1
+New Pods: 2
+
+
+finally :
+Old Pods: 0
+New Pods: 3
+
+
+✅ No downtime
+ ✅ Gradual replacement of Pods
+ ✅ Rollback supported with Deployment
+
+
+
+kubectl apply -f deployment.yaml
+
+kubectl scale deployment nginx-deploy --replicas=5
+
+kubectl set image deployment/nginx-deploy nginc=nginx:1.25
+
+kubectl rollout status deployment/nginx-deploy
+
+kubectl rollout undo deployment/nginx-deploy
+
+
+
+ReplicaSet is used to maintain the desired number of Pods and provides self-healing and scaling. Deployment is a higher-level Kubernetes object that manages ReplicaSets and provides advanced features like rolling updates, rollback, and revision history. In real-time projects, we generally use Deployments instead of directly creating ReplicaSets.
+
+
+ReplicaSet = Pod Manager
+
+Deployment = ReplicaSet Manager
+             + Rolling Update
+             + Rollback
+             + Version History
+
+Feature			ReplicaSet				Deployment
+
+Purpose	Maintains 	desired number of Pods		Manages ReplicaSets and Pods
+Scale Up/Down		✅ Yes						✅ Yes
+Self-Healing		✅ Yes						✅ Yes
+Rolling Update		❌ No						✅ Yes
+Rollback		❌ No						✅ Yes
+Revision History	❌ No						✅ Yes
+Pause/Resume Updates	❌ No						✅ Yes
+Production Usage	Rarely used directly				✅ Mostly used
+
+
+=====================
+Overview of Deployment
+=========================
+Deployment in Kubernetes is an object that manages your Pods and ReplicaSets.
+
+It helps you:
+
+✅ Create Pods
+✅ Scale Pods up/down
+✅ Perform Rolling Updates
+✅ Rollback to previous version
+✅ Self-heal failed Pods
+
+Suppose you have a Java application and want 3 copies (Pods) running all the time.
+
+Instead of creating Pods manually, you create a Deployment.
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-app
+spec:
+  replicas: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: java-app
+  template:
+    metadata:
+      labels:
+        app: java-app
+    spec:
+      containers:
+      - name: java-app
+        image: my-java-app:v1
+``
+
+What Happens?
+Deployment creates a ReplicaSet.
+ReplicaSet creates 3 Pods.
+If a Pod crashes, ReplicaSet creates a new one.
+If you update the image version, Deployment performs a r
+
+
+kubectl apply -f deployment.yaml
+
+kubectl get deployments
+
+kubectl get pods
+
+kubectl scale deployment java-app --replicas=5
+
+kubectl set image deployment/java-app java-app=my-java-app:v2
+
+kubectl rollout status deployment/java-app
+
+kubectl rollout undo deployment/java-app
+
+
+They are 2 stratergies in Deployment :
+
+
+1. Recreate ----> existing pods willl be deleted and new pods will be created.
+
+2. Rolling Update ---> Instead of stopping all old pods and creating new ones, Kubernetes replaces pods one by one (or in batches) so users can continue accessing the application.
+
+===================
+Blue -Green Deployment 
+======================
+Blue-Green Deployment is a deployment strategy to release a new version with zero/minimum downtime.
+
+Blue  = Current Version (v1) ✅
+Green = New Version (v2) ✅
+
+
+Advantages 
+
+✅ Rapid Releasing: Deploy new version quickly.
+
+✅ Simple Rollbacks
+
+If Green fails:
+
+Green ❌
+Switch back to Blue ✅
+
+Rollback takes seconds.
+
+✅ Built-in Disaster Recovery: Blue environment is always available as backup
+
+✅ Seamless Customer Experience: Users don't notice deployment activity.
+
+✅ Zero Downtime
+
+Both environments run simultaneously.
+No service interruption.
+
+
+Example :
+
+suppose :
+
+Blue  = myapp:v1
+Green = myapp:v2
+
+Users use v1.--->Deploy v2 to Green.---->Test Green.---->Switch Service/Load Balancer to Green.
+
+If issue occurs:
+
+Green ❌
+Switch back to Blue ✅
+
+
+============
+Blue.yaml (V1)
+==============
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: k8s-boot-demo-deployment-blue
+
+spec:
+  replicas: 3
+
+  strategy:
+    type: RollingUpdate
+
+  selector:
+    matchLabels:
+      app: k8s-boot-demo
+      version: v1
+      color: blue
+
+  template:
+    metadata:
+      labels:
+        app: k8s-boot-demo
+        version: v1
+        color: blue
+
+    spec:
+      containers:
+      - name: k8s-boot-demo
+        image: ashokit/javawebapp
+        imagePullPolicy: Always
+
+        ports:
+        - containerPort: 8080
+
+=================
+Blue-service-yaml(V1): To expose the Blue V1 using Node port Service
+===================
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: k8s-boot-demo-service
+
+spec:
+  type: NodePort
+
+  selector:
+    app: k8s-boot-demo
+    version: v1
+
+  ports:
+  - name: app-port-mapping
+    protocol: TCP
+    port: 80
+    targetPort: 8080
+    nodePort: 30090
+
+
+Then how to connect the sevice and Blue.yaml (V1) is selector in Service yaml match the pod label/selector  name of blue .yaml then comnnected these3 service (Important)
+
+=====
+Green.yaml(V2)
+===========
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: k8s-boot-demo-deployment-green
+
+spec:
+  replicas: 3
+
+  strategy:
+    type: RollingUpdate
+
+  selector:
+    matchLabels:
+      app: k8s-boot-demo
+      version: v2
+      color: green
+
+  template:
+    metadata:
+      labels:
+        app: k8s-boot-demo
+        version: v2
+        color: green
+
+    spec:
+      containers:
+      - name: k8s-boot-demo
+        image: ashokit/javawebapp
+        imagePullPolicy: Always
+
+        ports:
+        - containerPort: 8080
+
+===================
+Service.yaml--Green(V2) :  To expose the Green  V2 using Node port Service
+=======================
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: k8s-boot-demo-service-preprod
+
+spec:
+  type: NodePort
+
+  selector:
+    app: k8s-boot-demo
+    version: v2
+
+  ports:
+  - name: app-port-mapping
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
+    nodePort: 30092
+
+
+1. Currently traffic is going to V1 (Blue ) service. There is new version will come i.e is Green (V2).Usesrs are acessing the V1 but we need to change to V2.
+
+ 
+How to divert the traffic v1 to V2
+
+So for blue service selector V1 is there . we will change to V2 (Important)
+======================
+Blue-service-yaml(V1):
+=======================
+Changed to V2 in Blue-Service .
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: k8s-boot-demo-service
+
+spec:
+  type: NodePort
+
+  selector:
+    app: k8s-boot-demo
+    version: v2----------------------------(This the Important) We can Change to V1 To V1
+
+  ports:
+  - name: app-port-mapping
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
+    nodePort: 30090
+
+---> The service which is wxposed the outside just change the Selector 
+
+----> In V2 code is not working after 1 Hr again we roll back to  V1 in Blue.yaml selectors we can Change V2 to V1
+
+
+
+Rolling Update : It is a Stratergy How you create and manage the pods.
+
+Blue-Green--> It is an approach divert the Traffic.
+
+
+=============
+Auto-Scaling
+=============
+
+Based on traffic increased the pods and decrease the pods
+
+1. Horitizontal Pod  Autoscalling
+
+2. Vertical Scalling 
+
+
+--->Horizontal scaling increasing the number of instances
+
+Increase the number of servers/pods.
+
+======
+Before
+=======
+1-> pod
+
+=====
+After
+====
+3-> pods 
+
+
+✅ More traffic handled
+ ✅ High availability
+ ✅ Kubernetes Auto Scaling uses this
+
+
+--->vertical scaling means increasing capacity of system
+
+4gb---> 100 GB (not recommended)
+
+Increase CPU/RAM of the same server/pod.
+
+======
+Before
+======
+
+CPU: 2 Core
+RAM: 4 GB
+
+======
+After:
+========
+
+CPU: 8 Core
+RAM: 16 GB
+
+✅ More power to same machine
+ ❌ Has a limit
+
+
+
+For real time Auto scakling works on trafic --->i.e is based on metrics.
+
+We install Metric Server.
+
+kubectl top nodes 
+
+Kubectl top pods-----> we get a Metrics API not avaiilable
+
+
+So we need to install Metrics using Git repo--->Ashok sir notes.
+
+
+========
+Scenerio-Real time
+===============
+Your e-commerce application gets huge traffic during a sale.
+
+Initially:
+
+2 Pods
+      ↓
+CPU Usage = 30%
+
+======
+Suddenly thousands of users come.
+
+2 Pods
+      ↓
+CPU Usage = 85%
+
+
+=========
+HPA detects high CPU and automatically creates more pods.
+
+2 Pods → 4 Pods → 6 Pods
+
+
+========
+When traffic drops:
+
+6 Pods → 3 Pods → 2 Pods
+
+
+This saves cost and prevents application crashes.
+
+Step 1: Deployment
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springboot-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: springboot-app
+  template:
+    metadata:
+      labels:
+        app: springboot-app
+    spec:
+      containers:
+      - name: springboot-app
+        image: myrepo/springboot-app:v1
+        ports:
+        - containerPort: 8080
+
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+
+Step 2: Create HPA
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: springboot-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: springboot-app
+
+  minReplicas: 2
+  maxReplicas: 10
+
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+
+
+
+kubectl get hpa
+
+Load testing pod.
+
+Generate Load --> Terminal -1 --kubectl get hpa
+
+terminal-2---> We craete a pod and inside a pod increase thhe Load 
+
+Terminal 2--->kubectl run load-generator \
+--image=busybox \
+--rm -it -- /bin/sh
+
+
+Inside pod ;
+
+while true; do
+  wget -q -O- http://springboot-app-service
+done
+
+Continously sending the request.
+
+We create a temporary BusyBox pod and continuously send requests to the application service using a while loop with wget. This generates load on the application, allowing us to test HPA behavior and observe Kubernetes automatically scaling pods based on CPU or memory utilization.
+
+=============
+Service YAML
+===============
+apiVersion: v1
+kind: Service
+metadata:
+  name: springboot-app-service
+spec:
+  selector:
+    app: springboot-app
+
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+
+  type: ClusterIP
+
+
+
+====================================
+
+
+resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+
+
+
+
+Requests = Minimum Guaranteed
+
+✅ Pod needs at least:
+
+CPU = 200m = 0.2 CPU Core
+Memory = 256 MB
+
+Example :
+
+
+Node:
+CPU = 2 Core
+RAM = 4 GB
+
+Pod Requests:
+CPU = 0.2 Core
+RAM = 256 MB
+
+Kubernetes says:
+
+✅ "Enough resources available. Schedule this pod."
+
+
+Limits = Maximum Allowe
+
+This means:
+
+✅ Pod can use up to:
+
+CPU = 0.5 Core
+Memory = 512 MB//
+
+
+===============
+
+

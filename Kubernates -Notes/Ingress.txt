@@ -1,0 +1,385 @@
+===============
+Ingress
+========
+
+1. It is used to map extenal Urls to services which are running in the K8s Cluster.
+
+Pods are acessible with in the cluster.
+
+to expose pods outside the cluster we are using Service Concept
+
+
+1. Cluster IP:pods are communicate with in the Cluster 
+
+2. Node Port: expose the out side with IP for Node and Port Number.
+
+3. LBR: 
+
+It is not recommended to share our DNS LBR name to users ,so we map with your DNS to Domain name 
+
+
+Create record--->ALIAS--->chhose the endpoint(Load Balancer)--->region ---> select the Load Balancer---> Create Record
+
+
+Now mapped to our domain name that Load Balancer--> is it Ok (one service)
+
+
+Today  one application run in the cluster but in real time run multiple application
+
+
+Ex: web appp--->websvc---> 1. LBR---maped with --> DomainName(ashokit.org)---->ashokit.org/web-app
+
+maven-app- -->mavensvc-----> 1. LBR-->
+
+
+if In case you expose pods using node ports (i.e is Ips )not recommended [more Ips and not safe, no one acess  the application directly]
+
+
+Ingress is used to route the trafficto services which are in kuberbnates Cluster.
+
+
+                 Domain
+                    |
+               Ingress
+          _____|_____|_____
+         |       |       |
+      Service  Service  Service
+         |       |       |
+       Pods    Pods    Pods
+``
+
+Ingress is a Kubernetes resource used to expose multiple services through a single external URL or domain name.
+ It acts as a traffic router and sends requests to the appropriate service based on host names or URL paths.
+
+Pod runs the application, 
+Service exposes the Pods, and 
+Ingress exposes multiple Services using a single domain name and 
+routes traffic to the correct application.
+
+
+======================
+1. manifest.yaml(java -web-app) with Cluster IP
+============================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: javawebappdeployment
+
+spec:
+  replicas: 1
+
+  strategy:
+    type: Recreate
+
+  selector:
+    matchLabels:
+      app: javawebapp
+
+  template:
+    metadata:
+      name: javawebapppod
+      labels:
+        app: javawebapp
+
+    spec:
+      containers:
+      - name: javawebappcontainer
+        image: ashokit/javawebapp
+        ports:
+        - containerPort: 8080
+
+---
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: javawebappsvc
+
+spec:
+  type: ClusterIP
+
+  selector:
+    app: javawebapp
+
+  ports:
+  - port: 80
+    targetPort: 8080
+
+
+
+
+
+========================================
+manifest.yaml(Maven-app using Cluster IP)
+===================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mavenwebappdeployment
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: mavenwebapp
+
+  template:
+    metadata:
+      name: mavenwebapppod
+      labels:
+        app: mavenwebapp
+
+    spec:
+      containers:
+      - name: mavenwebappcontainer
+        image: ashokit/mavenwebapp
+
+        ports:
+        - containerPort: 8080
+
+        resources:
+          requests:
+            cpu: 200m
+            memory: 1Gi
+
+          limits:
+            cpu: 500m
+            memory: 2Gi
+
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: mavenwebappsvc
+
+spec:
+  type: ClusterIP
+
+  selector:
+    app: mavenwebapp
+
+  ports:
+  - port: 80
+    targetPort: 8080
+
+=============================================================
+
+
+kubectl apply-f javawebapp.yaml
+
+kubectl apply -f mavenwebapp.yaml
+
+
+kubectl get svc--->2 Services are running 
+
+mavenwebappsvc---ClusterIP
+
+javawebappsvc---->Cluster IP
+
+
+why ingress ?
+
+We want to route the traffic from outside to the Services.
+
+
+Set up Ingress controller 
+
+Popular Ingress Controllers
+
+NGINX Ingress Controller
+AWS Load Balancer Controller
+Traefik
+HAProxy
+
+
+=================
+Ingress Controller :
+==================
+
+Ingress only contains routing rules such as host-based or path-based routing. 
+It cannot process traffic by itself. An Ingress Controller is required to read those rules and route incoming requests to the appropriate Kubernetes services. Popular Ingress Controllers include NGINX Ingress Controller and AWS Load Balancer Controller.
+
+
+create one LBR:(Ingress cobnntrooler Load balancer)
+
+Kubectl apply -f service/loadbalancer-aws-elb.yaml
+
+
+map this Ingress LBR to Our Domain NAme( ashokit.org)
+
+===================
+Map application details to ingress Controller 
+=========================
+
+1. Multi DNS -NAme ( Not recommended)
+
+Suppose you have:
+app1.company.com
+app2.company.com
+app3.company.com
+app4.company.com
+...
+app50.company.com
+
+or 
+
+employee.company.com
+payroll.company.com
+admin.company.com
+
+
+
+
+
+Hard to manage
+SSL certificates become complex
+DNS records increase
+Troubleshooting becomes difficult
+
+
+2. Path-Based Routing
+
+
+company.com/employee
+company.com/payroll
+company.com/admin
+
+
+/employee -> employee-service
+/payroll  -> payroll-service
+/admin    -> admin-service
+
+
+Ingress is map the   traffic to external urls  based on host / path  routing to services 
+
+Ingress is a Kubernetes resource that routes external traffic to Kubernetes Services based on host-based routing or path-based routing.
+
+Host-Based Routing and Path-Based Routing are two ways Ingress decides where to send traffic.
+========================
+1. Host-Based Routing
+=====================
+
+Routing based on the domain name (host).
+
+Example
+
+employee.company.com  → employee-service
+
+admin.company.com     → admin-service
+
+payroll.company.com   → payroll-service
+``
+
+User
+ |
+employee.company.com
+ |
+Ingress
+ |
+employee-service
+ |
+Pods
+``
+
+✅ Different DNS names
+ ✅ Different applications
+
+
+================
+2. Path-Based Routing
+=====================
+
+Routing based on the URL path
+
+company.com/employee → employee-service
+
+company.com/admin    → admin-service
+
+company.com/payroll  → payroll-service
+
+
+User
+ |
+company.com/admin
+ |
+Ingress
+ |
+admin-service
+ |
+Pods
+
+✅ Single DNS name
+ ✅ Multiple applications
+
+
+ashokit.org
+      |
+      v
+   Ingress
+      |
+  -----------------
+  |               |
+/java-web-app   /maven-web-app
+  |               |
+  v               v
+javawebappsvc  mavenwebappsvc
+
+
+======
+ManifestIngress.yaml
+==================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-resource-2
+
+spec:
+  ingressClassName: nginx
+
+  rules:
+  - host: ashokit.org
+
+    http:
+      paths:
+
+      - path: /java-web-app
+        pathType: Prefix
+        backend:
+          service:
+            name: javawebappsvc
+            port:
+              number: 80
+
+      - path: /maven
+        pathType: Prefix
+        backend:
+          service:
+            name: mavenwebappsvc
+            port:
+              number: 80
+
+ashokit.org/java-web-app/
+
+
+ashokit/org/maven/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,790 @@
+===================
+Without Helm
+===================
+
+Suppose you want to install Jenkins in Kubernetes.
+
+You need to create:
+
+deployment.yaml
+service.yaml
+pvc.yaml
+configmap.yaml
+ingress.yaml
+secret.yaml
+
+Then run :
+
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+kubectl apply -f pvc.yaml
+...
+Lots of files.
+
+
+=============
+With Helm
+=================
+
+Someone already packed all those YAMLs into one bundle called a Chart.
+
+So you simply run:
+
+helm install jenkins jenkins/jenkins
+
+
+
+Helm will create:
+
+✅ Deployment
+ ✅ Service
+ ✅ PVC
+ ✅ ConfigMap
+ ✅ Secrets
+
+automatically.
+
+
+
+Real-Life Example
+
+Think about installing WhatsApp on your phone.
+
+Without Play Store:
+
+Download APK
+Download libraries
+Configure permissions
+Install manually
+
+With Play Store:
+
+Click Install
+
+
+Good question bro 🔥
+
+You're thinking:
+----------==============================
+"Docker image already has the application. Why do we need Helm?"
+=======================================================================
+
+Because Docker only gives the application container, but Kubernetes needs many other resources to run that application properly
+
+Docker Image Only
+
+Example:nginx:latest
+
+This image contains:
+
+✅ Nginx software
+ ✅ Libraries
+ ✅ Configuration inside container
+
+But Kubernetes still doesn't know:
+
+❌ How many pods to create
+ ❌ How users access it
+ ❌ Load balancing settings
+ ❌ Persistent storage
+ ❌ Secrets/passwords
+ ❌ Ingress rules
+
+Kubernetes Needs More
+
+For Nginx, you may need:
+
+Deployment
+Service
+Ingress
+ConfigMap
+Secret
+PVC
+
+
+Deployment --> Run 3 Nginx pods
+Service    --> Expose pods internally
+Ingress    --> Allow external access
+ConfigMap  --> Store configuration
+Secret     --> Store passwords
+PVC        --> Persistent storage
+
+=======================
+So What Helm Does?
+
+Helm packages all Kubernetes YAML files together.
+
+============================================
+Docker Image
+      +
+Deployment.yaml
+      +
+Service.yaml
+      +
+Ingress.yaml
+      +
+ConfigMap.yaml
+      +
+Secret.yaml
+      =
+Helm Chart
+
+
+helm install nginx
+
+
+
+Docker image contains the application and its dependencies. Helm does not replace Docker images. Helm packages and deploys all Kubernetes resources required to run the Docker image in a Kubernetes cluster.
+
+
+=====
+Chart
+=====
+
+Chart = Package/Bundle in Helm
+
+Docker Image = Package of Application
+
+Helm Chart = Package of Kubernetes YAMLs
+
+You have these files:
+
+deployment.yaml
+service.yaml
+ingress.yaml
+configmap.yaml
+secret.yaml
+
+Instead of carrying them one by one, Helm bundles them into:
+
+nginx-chart
+
+This bundle is called a Chart.
+
+===============
+Visual Understanding
+
+Without Chart:
+==================
+
+deployment.yaml
+service.yaml
+ingress.yaml
+secret.yaml
+configmap.yaml
+
+===========
+With Chart:
+===========
+nginx-chart
+   |
+   +-- deployment.yaml
+   +-- service.yaml
+   +-- ingress.yaml
+   +-- secret.yaml
+   +-- configmap.yaml
+
+
+
+
+
+
+
+
+
+====================
+
+Real Example
+===========
+When you run:
+
+helm install my-nginx bitnami/nginx
+
+my-nginx = Release name
+bitnami/nginx = Chart
+
+The chart already contains templates for:
+
+Deployment
+Service
+ConfigMap
+Ingress
+
+Helm creates all of them.
+
+A Chart is a collection of Kubernetes resource definitions (YAML files) packaged together and managed by Helm.
+
+
+Chart  = Package
+Release = Installed Package
+Helm Client = Installer
+Kubernetes = Runs the Application
+
+
+package manager :
+
+Linux machines :
+
+===> In Linux Os we have package mmanger to install required Softwares/packages
+
+
+EX: Yum,apt
+
+amazon : sudo yum install java ---> yum is a package manger that install packages in the lInux machines.
+
+Ubuntu machine : sudo apt install java---> apt is a package manager that insyalll packages in the Linux machine 
+
+
+
+
+====
+HELM
+===
+
+It is a package manager which is used insatll required softwares in K8S
+
+HELM will use charts to install required packages 
+
+
+chart---> Collection of configuration files(Manifest yamls)
+
+
+Using HELM charts We can install Prometheous /Grafana Server(monitoring)
+
+
+
+
+Bro, this image explains why Helm is used instead of running multiple kubectl apply commands manually.
+
+1️⃣ Without Helm (Top Section)
+
+You have:
+
+deployment.yml
+service.yml
+
+You run:
+
+Shell
+kubectl apply -f deployment.yml
+kubectl apply -f service.yml
+
+Kubernetes creates:
+
+Deployment
+Service
+
+Problem: For every application, you need to manage many YAML files manually.
+
+Example:
+
+Plain Text
+deployment.yml
+service.yml
+ingress.yml
+configmap.yml
+secret.yml
+hpa.yml
+
+You must apply all of them one by one:
+
+Shell
+kubectl apply -f deployment.yml
+kubectl apply -f service.yml
+kubectl apply -f ingress.yml
+kubectl apply -f configmap.yml
+kubectl apply -f secret.yml
+2️⃣ With Helm (Bottom Section)
+
+Helm packages all YAML files into a Chart.
+
+Plain Text
+mychart/
+|
+├── Chart.yaml
+├── values.yaml
+└── templates/
+├── deployment.yaml
+├── service.yaml
+├── ingress.yaml
+├── configmap.yaml
+
+Instead of applying each file:
+
+Shell
+kubectl apply -f deployment.yml
+kubectl apply -f service.yml
+kubectl apply -f ingress.yml
+
+You simply run:
+
+Shell
+helm install mychart .
+ 
+
+Helm automatically creates:
+
+Deployment
+Service
+Ingress
+ConfigMap
+Secret
+HPA
+
+everything together.
+
+Real-Time Example
+
+Imagine your company needs NGINX.
+
+Without Helm
+
+Create:
+
+Shell
+deployment.yml
+service.yml
+
+Apply:
+
+Shell
+kubectl apply -f deployment.yml
+kubectl apply -f service.yml
+With Helm
+
+Just run:
+
+Shell
+helm install nginx bitnami/nginx
+ 
+
+Helm downloads the chart and creates all required Kubernetes resources automatically.
+
+
+=====================
+Bro, this slide explains the main reason Kubernetes exists even though Docker already exists.
+===========================================================================================
+
+
+
+First Understand the Problem
+
+Suppose you created a Python app.
+
+Step 1: Build Docker Image
+Shell
+docker build -t python-app .
+Step 2: Run Container
+Shell
+docker run -p 9001:9001 python-app
+
+Now your application is running inside one Docker container.
+
+Docker's job is done ✅
+
+Docker only creates and runs containers.
+
+Then Why Kubernetes?
+
+Imagine your app becomes famous.
+
+Instead of:
+
+Plain Text
+100 users
+
+now:
+
+Plain Text
+10,000 users
+100,000 users
+1,000,000 users
+
+come to your application.
+
+A single Docker container cannot handle everything.
+
+That's where Kubernetes comes in.
+
+1. Scalability
+Docker Alone
+Plain Text
+1 Container
+ 
+
+If traffic increases, you manually create more containers.
+
+Shell
+docker run app
+docker run app
+docker run app
+
+Very difficult to manage.
+
+Kubernetes
+
+Just tell K8s:
+
+YAML
+replicas: 5
+
+Kubernetes automatically creates:
+
+Plain Text
+Pod1
+Pod2
+Pod3
+Pod4
+Pod5
+
+If traffic increases:
+
+YAML
+replicas: 10
+
+K8s scales automatically.
+
+2. Automated Deployment
+
+Without Kubernetes:
+
+Shell
+docker run app:v1
+
+For a new version:
+
+Shell
+docker stop old-container
+docker run app:v2
+
+Manual work.
+
+With Kubernetes:
+
+Shell
+kubectl apply -f deployment.yml
+
+K8s updates the application automatically.
+
+3. Auto-Healing
+
+Suppose one container crashes.
+
+Docker
+Plain Text
+Container Stopped ❌
+Application Down ❌
+
+You must start it manually.
+
+Shell
+docker start container-id
+Kubernetes
+
+K8s continuously monitors pods.
+
+Plain Text
+Pod Crashed ❌
+
+Kubernetes immediately creates a new pod.
+
+Plain Text
+Old Pod -> Dead
+New Pod -> Running ✅
+
+This is called Auto-Healing.
+
+Interview favorite question bro 🔥
+
+4. Rollout & Rollback
+
+Suppose Version 1 is working.
+
+Plain Text
+v1 ✅
+
+Deploy Version 2.
+
+Plain Text
+v2 ❌ Bug Found
+
+With Kubernetes:
+
+Shell
+kubectl rollout undo deployment/nginx
+
+Immediately returns to:
+
+Plain Text
+v1 ✅
+
+This is Rollback.
+
+Real-Time Example
+
+Think about Amazon, Netflix, Flipkart, Swiggy.
+
+They cannot run with:
+
+Plain Text
+1 Docker Container
+ 
+
+They run:
+
+Plain Text
+100s / 1000s of containers
+
+Kubernetes handles:
+
+Scaling
+Load balancing
+Self-healing
+Updates
+Rollbacks
+Container management
+Simple Interview Answer
+
+Docker vs Kubernetes
+
+Docker	Kubernetes
+Creates containers	Manages containers
+Runs application	Orchestrates applications
+Single container focus	Multiple container management
+No auto-healing	Auto-healing
+Limited scaling	Auto-scaling
+Manual updates	Rolling updates & rollback
+One-Line Memory Trick
+
+👉 Docker = Container Creation
+ 👉 Kubernetes = Container Management (Orchestration)
+
+Real-time flow:
+
+Plain Text
+Code
+↓
+Docker Image
+↓
+Docker Container
+↓
+Kubernetes
+├─ Scaling
+├─ Auto-Healing
+├─ Load Balancing
+└─ Rollback
+
+This is exactly why people say:
+
+"Docker packages the application, Kubernetes manages the application in production." 🚀
+
+
+
+
+Bro, this slide is showing the big advantage of Helm over raw kubectl commands.
+
+Without Helm (kubectl)
+
+Suppose your application has:
+
+Deployment
+Service
+Ingress
+Install
+Shell
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+kubectl apply -f ingress.yaml
+Delete
+Shell
+kubectl delete -f deployment.yaml
+kubectl delete -f service.yaml
+kubectl delete -f ingress.yaml
+
+Imagine an enterprise application:
+
+Plain Text
+deployment.yaml
+service.yaml
+ingress.yaml
+configmap.yaml
+secret.yaml
+hpa.yaml
+networkpolicy.yaml
+
+You must manage every file separately.
+
+With Helm
+
+All Kubernetes resources are packaged into a Chart.
+
+Install
+Shell
+helm install my-app ./my-chart
+
+Helm creates:
+
+Plain Text
+Deployment
+Service
+Ingress
+ConfigMap
+Secret
+HPA
+
+all together.
+
+Uninstall
+Shell
+helm uninstall my-app
+
+Helm removes everything created by that release.
+
+Real-Time Example
+
+Without Helm:
+
+Shell
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+kubectl apply -f ingress.yaml
+kubectl apply -f configmap.yaml
+kubectl apply -f secret.yaml
+
+With Helm:
+
+Shell
+helm install netflix-app ./chart
+ 
+
+Single command ✅
+
+
+expressions, pipe, template, include, conditions all these topics are missing
+
+
+
+====================
+Bro, Custom Helm Chart means creating your own Helm package for your application instead of using ready-made charts like Nginx, Jenkins, or Prometheus.
+
+Step 1: Create a Chart
+Shell
+helm create my-app
+
+Structure:
+
+Plain Text
+my-app/
+│
+├── Chart.yaml
+├── values.yaml
+└── templates/
+├── deployment.yaml
+├── service.yaml
+└── ingress.yaml
+Step 2: Customize values.yaml
+YAML
+replicaCount: 3
+ 
+image:
+repository: omprakash/app
+tag: v1
+ 
+service:
+type: ClusterIP
+port: 80
+Step 3: Use Values in Deployment
+
+templates/deployment.yaml
+
+YAML
+spec:
+replicas: {{ .Values.replicaCount }}
+ 
+containers:
+- name: my-app
+image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+ 
+
+Helm replaces placeholders during deployment.
+
+Step 4: Install Chart
+Shell
+helm install myapp ./my-app
+
+Helm creates:
+
+Plain Text
+Deployment
+Service
+Ingress
+ConfigMap
+Secrets
+
+if defined in templates.
+
+Real-Time Example
+
+Suppose your company has a Spring Boot application.
+
+Without Helm:
+
+Shell
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+kubectl apply -f ingress.yaml
+kubectl apply -f configmap.yaml
+
+With Custom Helm Chart:
+
+Shell
+helm install springboot-app ./spring-chart
+
+Single command.
+
+Different Environments
+values-dev.yaml
+YAML
+replicaCount: 2
+image:
+tag: dev
+values-prod.yaml
+YAML
+replicaCount: 10
+image:
+tag: prod
+
+Deploy DEV:
+
+Shell
+helm install myapp ./my-app -f values-dev.yaml
+
+Deploy PROD:
+
+Shell
+helm install myapp ./my-app -f values-prod.yaml
+
+Same chart, different values.
+
+Most Asked Interview Question
+What is a Custom Helm Chart?
+
+Answer:
+
+A Custom Helm Chart is a user-created Helm package that contains Kubernetes manifests, templates, and configuration values for deploying a specific application. It enables reusable, parameterized, version-controlled deployments across multiple environments.
+
+Important Helm Commands
+Shell
+helm create my-app
+helm lint my-app
+helm template my-app
+helm install myapp ./my-app
+helm upgrade myapp ./my-app
+helm rollback myapp 1
+helm uninstall myapp
+
+
+
+
+
+

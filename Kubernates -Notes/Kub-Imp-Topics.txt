@@ -1,0 +1,606 @@
+Scenerio-1:
+====================
+
+Requirement:
+
+You have deployed a Java application in Kubernetes.
+
+Your environment:
+- Namespace: ashokit-ns
+- Deployment: java-web-app
+- Replicas: 2
+- Container port: 8080
+- Service name: java-web-service
+- Service type: ClusterIP
+- Service port: 80
+- Hostname: myapp.local
+Your task:
+
+Write two YAML files:
+1. service.yaml
+2. ingress.yaml
+Expected behavior:
+
+When a user accesses:
+
+http://myapp.local
+
+
+
+===============================
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: java-web-service
+  namespace: ashokit-ns
+
+spec:
+  type: ClusterIP
+
+  selector:
+    app: java-web-app
+
+  ports:
+  - port: 80
+    targetPort: 8080
+
+
+======
+Ingress .yaml
+============
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-resource-2
+
+spec:
+  ingressClassName: nginx
+
+  rules:
+  - host: myapp.local
+
+    http:
+      paths:
+
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: java-web-service
+            port:
+              number: 80
+
+
+
+
+
+Your company currently runs a Java application with 3 replicas.
+
+Current application:
+- Deployment: java-web-app
+- Namespace: ashokit-ns
+- Image: naniom1234/javawebapp:v1
+- Replicas: 3
+- Container port: 8080
+The development team releases a new version v2.
+
+Your tasks:
+1. Write deployment.yaml for 3 replicas using v1.
+2. Update the application image to v2.
+3. Check rollout status.
+4. Check rollout history.
+5. Roll back to the previous version.
+6. Verify that the application is running with v1 again.
+
+
+
+
+
+
+Blue.yaml 
+
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: java-web-app-blue
+  namespace: ashokit-ns
+spec:
+  replicas: 3
+
+  strategy:
+    type: RollingUpdate
+
+  selector:
+    matchLabels:
+      app: java-web-app
+      version: v1
+      color: blue
+
+  template:
+    metadata:
+      labels:
+        app: java-web-app
+        version: v1
+        color: blue
+
+    spec:
+      containers:
+      - name: java-web-app
+        image: naniom1234/javawebapp:v1
+        imagePullPolicy: Always
+
+        ports:
+        - containerPort: 8080
+
+
+
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: Blue-service
+
+spec:
+  type: NodePort
+
+  selector:
+    app: java-web-app
+    version: v1
+
+  ports:
+  - name: app-port-mapping
+    protocol: TCP
+    port: 80
+    targetPort: 8080
+    nodePort: 30090
+
+
+==================
+Green.yaml
+============
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: java-web-app-green
+  namespace:  
+
+spec:
+  replicas: 3
+
+  strategy:
+    type: RollingUpdate
+
+  selector:
+    matchLabels:
+      app: java-web-app
+      version: v2
+      color: green
+
+  template:
+    metadata:
+      labels:
+        app: java-web-app
+        version: v2
+        color: green
+
+    spec:
+      containers:
+      - name: java-web-app
+        image: naniom1234/javawebapp:v2
+        imagePullPolicy: Always
+
+        ports:
+        - containerPort: 8080
+
+
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: Blue-service
+
+spec:
+  type: NodePort
+
+  selector:
+    app: java-web-app
+    version: v2
+
+  ports:
+  - name: app-port-mapping
+    protocol: TCP
+    port: 80
+    targetPort: 8080
+    nodePort: 30090
+
+
+application is cjhanged to V2
+
+
+
+apiVersion: v1
+kind: Service
+
+metadata: 
+  name: live-service
+
+spec:
+  type: NodePort
+
+  selector:
+    app: java-web-app
+    version: v2
+
+  ports:
+  - name: app-port-mapping
+    protocol: TCP
+    port: 80
+    targetPort: 8080
+    nodePort: 30080
+
+
+kubectl rollout status deployment/java-web-app
+
+kubectl rollout history deployment/java-web-app
+
+kubectl rollout undo deployment/java-web-app
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=================================================================================================================================
+
+
+Next practical task – Blue-Green deployment
+Bro, write a separate live-service.yaml.
+
+Requirements:
+- Service name: live-service
+- Type: NodePort
+- NodePort: 30080
+- Port: 80
+- TargetPort: 8080
+- Initially route traffic to Blue (v1).
+- Later switch traffic to Green (v2) by changing only the selector.
+
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-resource-2
+
+spec:
+  ingressClassName: nginx
+
+  rules:
+  - host: myapp.local
+
+    http:
+      paths:
+
+      - path: /javaweb
+        pathType: Prefix
+        backend:
+          service:
+            name: java-service
+            port:
+              number: 80
+
+     - path: /mavenweb
+        pathType: Prefix
+        backend:
+          service:
+            name: maven-service
+            port:
+              number: 80
+
+
+===================================================
+Next challenge: HPA (Horizontal Pod Autoscaler)
+You have a Java application running with 2 replicas.
+
+
+Requirements:
+- Minimum replicas: 2
+- Maximum replicas: 5
+- CPU utilization target: 50%
+- Scale automatically based on CPU usage.
+
+
+
+
+
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: springboot-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: springboot-app
+
+  minReplicas: 2
+  maxReplicas: 5
+
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+
+
+
+
+4. Interview question
+Interviewer: You created HPA, but it is showing <unknown> for CPU utilization. What could be the reasons?
+
+Expected points:
+1. Metrics Server is not installed or working.
+2. CPU requests are missing from containers.
+3. Metrics are not yet available.
+
+
+
+===========================
+Your Java application has 3 replicas. During a node maintenance operation, you want Kubernetes to ensure at least 2 Pods remain available.
+=================================================================
+
+Write pdb.yaml with:
+- Kind: PodDisruptionBudget
+- API version: policy/v1
+- Minimum available: 2
+- Selector: app: java-web-app
+
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+
+metadata:
+  name: java-web-app-pdb
+  namespace: ashokit-ns
+
+spec:
+  minAvailable: 2
+
+  selector:
+    matchLabels:
+      app: java-web-app
+
+
+======================================================
+
+What is Node Affinity?
+
+Node Affinity means scheduling a Pod on a particular node based on that node's labels.
+
+Example:
+
+Imagine your Kubernetes cluster has 3 worker nodes:
+- Node 1: SSD
+- Node 2: HDD
+- Node 3: SSD
+You want your Java application to run only on SSD nodes.
+
+You can use Node Affinity.
+
+=============================
+Types of Node Affinity
+==================================
+
+1. requiredDuringSchedulingIgnoredDuringExecution  ---: Must match the condition. Otherwise, Pod won't be scheduled.
+
+2. preferredDuringSchedulingIgnoredDuringExecution---: Try to match the condition, but scheduling can happen on another node.
+
+Required = Mandatory.
+
+Preferred = Optional preference.
+
+
+Example-2:
+
+Schedule Java application Pods only on nodes having disktype=ssd.
+
+
+Step 1: Label a worker node.
+
+kubectl label nodes worker-node-1 disktype=ssd
+
+
+Step 2: Create deployment.yaml.
+
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-web-app
+  namespace: ashokit-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: java-web-app
+  template:
+    metadata:
+      labels:
+        app: java-web-app
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: disktype
+                    operator: In
+                    values:
+                      - ssd
+      containers:
+        - name: java-container
+          image: naniom1234/javawebapp:v1
+          ports:
+            - containerPort: 8080
+
+kubectl apply -f deployment.yaml
+
+kubectl get pods -o wide -n ashokit-ns
+
+kubectl describe pod <pod-name> -n ashokit-ns
+
+
+Operator	Meaning
+
+In		Value must be in the given list
+NotIn		Value must not be in the list
+Exists		Label key must exist
+DoesNotExist	Label key must not exist
+Gt		Value must be greater than
+Lt		Value must be less than
+
+Interviewer: What is the difference between Node Selector and Node Affinity?
+- Node Selector: Simple key-value matching.
+- Node Affinity: Advanced scheduling rules with required and preferred conditions, and multiple operators.
+
+
+
+===========
+ConfigMap:
+=============
+
+ConfigMap is used to store application configuration data separately from application code and container images.
+
+
+For example, your Java Spring Boot application needs:
+- Database URL
+- Application environment
+- Log level
+- Application port
+Instead of hardcoding these values inside your application, you can store them in a ConfigMap.
+
+
+
+2. Real-time example
+Imagine your application connects to a MySQL database.
+
+Without ConfigMap:
+
+DB_URL=jdbc:mysql://localhost:3306/ies
+
+
+The configuration is inside your application.
+
+
+With ConfigMap:
+
+ConfigMap
+DB_URL, DB_NAME, LOG_LEVEL
+
+Java Spring Boot Pod
+Reads configuration values
+
+Application runs using those configurations
+
+
+=================
+3. Create ConfigMap YAML
+File: configmap.yaml
+=========================
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: springboot-config
+  namespace: ashokit-ns
+
+data:
+  DB_URL: "jdbc:mysql://mysql-service:3306/ies"
+  DB_NAME: "ies"
+  LOG_LEVEL: "INFO"
+
+
+kubectl apply -f configmap.yaml
+
+
+
+
+kubectl get configmap -n ashokit-ns
+
+kubectl describe configmap springboot-config -n ashokit-ns
+
+
+4. How to use ConfigMap in Deployment?
+You can inject ConfigMap values into containers as environment variables.
+
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: springboot-app
+  namespace: ashokit-ns
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: springboot-app
+
+  template:
+    metadata:
+      labels:
+        app: springboot-app
+
+    spec:
+      containers:
+        - name: springboot-container
+          image: naniom1234/javawebapp:v1
+
+          envFrom:
+            - configMapRef:
+                name: springboot-config
+
+
+
+What is ConfigMap in Kubernetes?
+
+"ConfigMap is a Kubernetes object used to store non-sensitive configuration data separately from application code. 
+We can inject these configurations into containers using environment variables or mount them as files. 
+This helps us manage configurations across different environments without rebuilding Docker images."
+
+
+TechWorld with Sahana 
+
+MindMajix
+
+Softsweb
+
+
+
+      

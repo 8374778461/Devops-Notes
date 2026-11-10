@@ -1,0 +1,521 @@
+Ansible : Configuration management software 
+
+
+Configuration management :install/uninstall softwares  , copy files like that managing 
+
+
+Manual ---> 1. Time taking process
+	    2. Repeated Work
+            3. Error
+
+
+Ansible --> Ansible is an Automation Tool used to automate:
+
+--->Server configuration
+---->Application deployment
+--->Software installation
+---->Infrastructure management
+--->Repetitive tasks
+
+Think like this:
+==========================
+❌ Without Ansible:
+==========================
+Login to 100 servers
+Install Java manually
+Install Tomcat manually
+Update configuration manually
+
+=================
+✅ With Ansible:
+================
+Write one playbook
+Run one command
+All 100 servers get updated automatically
+
+
+Real-Time Example
+
+Suppose your company has:
+
+50 Linux servers
+Need Java 17 on all servers
+
+====================
+Without Ansible:
+=================
+ssh server1
+sudo yum install java-17
+ 
+ssh server2
+sudo yum install java-17
+
+Repeat 50 times 😭
+
+
+Before using ansible pepole used to work with Chef and puppet 
+
+Chef and puppet----> Pull Meachanism--> 2 Vms install java ,while using chef that 2 machines communicate with firstzVm  then only perform task
+
+Ansible-----> push--> 3 Vms install java --> take one more machine install ansible -->whever task is there ansible directly assign task to that 3 machines
+
+
+Why DevOps Engineers Use Ansible?
+
+Configuration Management
+Application Deployment
+Server Provisioning
+Patch Management
+User Creation
+Service Restart
+Infrastructure Automation
+
+=================
+Real-Time Scenario
+========================
+
+Suppose a new project comes.
+
+Ansible:
+
+Create VM
+Install Docker
+Install Kubernetes
+Configure servers
+
+Kubernetes:
+
+Deploy application containers
+Scale pods
+Restart failed pods
+Perform rolling updates
+
+
+Terraform
+   ↓
+Creates 5 AWS EC2 VMs
+
+Ansible
+   ↓
+Installs Docker + Kubernetes on those VMs
+
+Kubernetes
+   ↓
+Deploys Java Microservices in Pods
+
+
+
+Copilot said:
+
+Exactly bro ✅
+
+Ansible = Configuration Management Tool
+
+Its main job is to configure servers after they are created.
+
+Real-time Example
+
+Suppose Terraform creates 10 new EC2 servers.
+
+Now those servers are empty.
+
+Ansible will:
+
+✅ Install Java
+
+✅ Install Tomcat/Nginx
+
+✅ Install Docker
+
+✅ Create users
+
+✅ Copy application files
+
+✅ Update configuration files
+
+✅ Restart services
+
+✅ Deploy application
+
+
+========================
+Ansible Architecture 
+=====================
+
+          Ansible Server
+          (Control Node)
+               |
+               | SSH
+       -------------------
+       |                 |
+ Managed Node 1    Managed Node 2
+ 10.0.1.20         10.0.1.30
+==================
+1. Control Node (Ansible Server)
+=========================
+
+IP: 10.0.1.10
+Show more lines
+
+This is where Ansible is installed.
+
+Responsibilities:
+
+✅ Stores Playbooks
+
+✅ Stores Inventory
+
+✅ Runs Ansible Commands
+
+✅ Connects to servers using SSH
+
+
+====================
+2. Managed Nodes
+
+===================
+
+10.0.1.20
+10.0.1.30
+
+These are the target servers.
+
+Examples:
+
+Application Server
+Web Server
+Database Server
+
+Ansible performs tasks on these servers.
+
+========
+Inventory File
+===============
+[webservers]
+10.0.1.20
+10.0.1.30
+
+
+
+
+
+
+
+
+======
+Ansible setup: when new server added how to set up with control node.
+===============
+
+Ansible Server (Control Node)
+IP = 10.0.1.10
+
+Managed Server 1
+IP = 10.0.1.20
+
+Managed Server 2
+IP = 10.0.1.30
+
+
+Step 1: Generate Key on Ansible Server
+
+On 10.0.1.10
+
+ssh-keygen
+
+
+Private Key : id_rsa
+Public Key  : id_rsa.pub
+
+Step 2: Copy Public Key to New Server
+
+From Ansible Server (10.0.1.10) run:
+
+ssh-copy-id ec2-user@10.0.1.20
+
+Meaning :
+
+Take id_rsa.pub from 10.0.1.10
+Copy it to 10.0.1.20
+
+same :
+
+ssh-copy-id ec2-user@10.0.1.30
+
+
+
+Step 3: Test Login
+
+From 10.0.1.10:
+
+ssh ec2-user@10.0.1.20
+
+
+✅ No password asked
+ssh ec2-user@10.0.1.30
+
+✅ No password asked
+
+Step 4: Add Inventory
+
+[webservers]
+10.0.1.20
+10.0.1.30
+
+Step 5: Test AnsibleA
+
+ansible all -m ping
+
+
+
+========
+Inventory File In Ansible
+================
+
+Inventory file contains the list of servers (hosts) that Ansible will manage.
+
+
+Simple Inventory File
+
+inventory.ini
+
+[webservers]
+192.168.1.10
+192.168.1.11
+
+[dbservers]
+192.168.1.20
+
+======
+2. Using Host Names
+======================
+
+[webservers]
+web1
+web2
+
+[dbservers]
+db1
+
+
+==============
+3. Inventory With Username
+=====================
+[webservers]
+192.168.1.10 ansible_user=ec2-user
+192.168.1.11 ansible_user=ec2-user
+
+======================
+4. Inventory with Private Key (AWS)
+==================
+
+[webservers]
+10.0.1.10 ansible_user=ec2-user ansible_ssh_private_key_file=/home/ec2-user/mykey.pem
+
+
+============
+modules : Ready made programs that perform a Specific task on remote Server.
+======
+Modules are basically ready-made built-in programs/functions in Ansible.
+
+ping----> Connectivity
+
+Shell--> execute Linux Commands
+
+Yum---> install Softwares
+
+
+Copy---> Copy the file f4rom Control node to Manage node 
+
+==========
+Ad-Hoc Commands
+===================
+
+ One-time Ansible commands used for quick tasks without creating a playbook.
+
+Syntax:
+===================================================================
+ansible <all/groupname/hostName/IP> -m <module> -a "<arguments>"
+==============================================================
+
+=====
+Ping : Connectivity
+====
+Managed Nodes are working or not :
+
+----------ansible all -m ping ------------
+
+check group of managed nodes are working or not :
+
+--------ansible webservers -m ping-------
+ 
+--------ansible DBservers -m ping-------
+
+============
+Shell : Execute Linux commands on Remote Servers
+=====
+
+noraml Uptime --> It will give the ansible server uptime(when the ansible server starts)
+
+ansible all -m shell -a uptime ----> i will give the up time for the all managed Servers.
+
+
+shell: it is amodule which execute Linux commands on remote servers 
+
+Shell module in Ansible is used to run Linux shell commands on target servers.
+
+
+
+ansible all -m shell -a date
+
+ansible all -m shell -a "git --version"
+
+ansible webservers -m -b shell -a "yum install git "
+
+m-> Module
+
+b-> becomes a root user( root previliages)
+
+a-> Arguments 
+
+ansible all -m  shell -a "java -version"
+
+ansible all -m -b shell -a "yum install java"
+
+
+=====
+Yum : The yum module is used to install, remove, update, and manage packages on RHEL, CentOS, Rocky Linux, AlmaLinux, Amazon Linux servers.
+===
+
+
+ansible all -m shell -a "maven -version"
+
+ansible all -m -b shell yum -a "name = maven"
+
+
+
+ansible all -b -m yum -a "name=git state=present"
+
+name = package name
+state=present = install package
+state=absent = uninstall package
+state=latest = update to latest version
+-b = become (sudo/root)
+
+ansible all -b -m yum -a "name=httpd state=present"
+
+update the Git
+===========
+ansible all -b -m yum -a "name=git state=latest"
+
+
+Install Multiple packages :
+-=============================
+ansible all -b -m yum -a "name=git,httpd,wget state=present"
+
+
+
+ansible all -b -m service -a "name=httpd state=started"
+
+ping → connectivity
+command → simple command
+shell → command with |, >, &&
+yum → install/remove packages
+service → start/stop services
+copy → copy files
+user → create users
+
+===
+Copy
+======
+
+====================================================
+Copy the files from Control node to Managed Nodes:
+======================================================
+
+ansible <hosts/all/ip> -m copy -a "src=<source_file> dest=<destination_path>"
+
+========================
+Example 1: Copy a file:
+========================
+
+ansible all -m copy -a "src=/home/ansible/app.conf dest=/tmp/app.conf"
+
+====================================
+Example 2: Copy with root permissions:
+==========================================
+
+ansible all -b -m copy -a "src=/home/ansible/app.conf dest=/etc/app.conf"
+
+=======================
+Example 3: Copy a directory
+=========================
+ansible all -m copy -a "src=/home/ansible/configs/ dest=/opt/configs/"
+
+
+===============
+Real -time - Example
+======================
+
+Suppose you have a file:
+
+/home/ansible/install.sh
+
+Copy it to all target servers:
+
+ansible all -m copy -a "src=/home/ansible/install.sh dest=/tmp/install.sh"
+
+Then verify:
+
+ansible all -m shell -a "ls -l /tmp/install.sh"
+
+
+copy → Control Node ➜ Managed Node
+fetch → Managed Node ➜ Control Node
+yum → Install package
+service → Start/Stop service
+shell → Run Linux commands
+command → Run simple commands without shell features
+
+===
+Fetch
+=====
+Which module copies files from Managed Node to Control Node?
+
+Answer:
+
+We use the fetch module.
+
+ansible all -m fetch -a "src=/tmp/test.txt dest=/backup/"
+
+
+Module	Direction
+copy	Control Node → Managed Node
+fetch	Managed Node → Control Node
+
+
+
+ansible all -m ping
+
+ansible all -m command -a "java -version"
+
+ansible all -m shell -a "df -h"
+
+ansible all -b -m yum -a "name=git state=present"
+
+ansible all -m copy -a "src=test.txt dest=/tmp/test.txt"
+
+ansible all -m fetch -a "src=/tmp/test.txt dest=/backup"
+
+ansible all -b -m service -a "name=httpd state=started"
+
+df -h is a Linux command used to check disk space utilization.
+
+df = Disk Filesystem
+-h = Human readable format (GB, MB, TB)
+
+
+
+
+
+
+

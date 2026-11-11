@@ -137,6 +137,86 @@ Ansible will:
 
 ✅ Deploy application
 
+======
+Ansible setup: when new server added how to set up with control node.
+===============
+
+Ansible Server (Control Node)
+IP = 10.0.1.10
+
+Managed Server 1
+IP = 10.0.1.20
+
+Managed Server 2
+IP = 10.0.1.30
+
+====================
+Step 1: Generate Key on Ansible Server
+=============================
+On 10.0.1.10
+
+ssh-keygen
+
+
+Private Key : id_rsa
+Public Key  : id_rsa.pub
+
+===========================
+Step 2: Copy Public Key to New Server
+=================================
+From Ansible Server (10.0.1.10) run:
+
+ssh-copy-id ec2-user@10.0.1.20
+
+Meaning :
+
+Take id_rsa.pub from 10.0.1.10
+Copy it to 10.0.1.20
+
+What happens internally?
+
+Your public key (id_rsa.pub) is copied to 10.0.1.20:
+
+
+
+
+
+same :
+
+ssh-copy-id ec2-user@10.0.1.30
+
+
+
+Step 3: Test Login
+
+From 10.0.1.10:
+
+ssh ec2-user@10.0.1.20
+
+
+✅ No password asked
+ssh ec2-user@10.0.1.30
+
+✅ No password asked
+
+Step 4: Add Inventory
+
+[webservers]
+10.0.1.20
+10.0.1.30
+
+Step 5: Test AnsibleA
+
+ansible all -m ping
+
+
+
+Control Node
+    ↓
+ssh-copy-id ec2-user@10.0.1.20
+    ↓
+Ansible can now manage that server passwordlessly
+
 
 ========================
 Ansible Architecture 
@@ -195,75 +275,6 @@ Inventory File
 10.0.1.20
 10.0.1.30
 
-
-
-
-
-
-
-
-======
-Ansible setup: when new server added how to set up with control node.
-===============
-
-Ansible Server (Control Node)
-IP = 10.0.1.10
-
-Managed Server 1
-IP = 10.0.1.20
-
-Managed Server 2
-IP = 10.0.1.30
-
-
-Step 1: Generate Key on Ansible Server
-
-On 10.0.1.10
-
-ssh-keygen
-
-
-Private Key : id_rsa
-Public Key  : id_rsa.pub
-
-Step 2: Copy Public Key to New Server
-
-From Ansible Server (10.0.1.10) run:
-
-ssh-copy-id ec2-user@10.0.1.20
-
-Meaning :
-
-Take id_rsa.pub from 10.0.1.10
-Copy it to 10.0.1.20
-
-same :
-
-ssh-copy-id ec2-user@10.0.1.30
-
-
-
-Step 3: Test Login
-
-From 10.0.1.10:
-
-ssh ec2-user@10.0.1.20
-
-
-✅ No password asked
-ssh ec2-user@10.0.1.30
-
-✅ No password asked
-
-Step 4: Add Inventory
-
-[webservers]
-10.0.1.20
-10.0.1.30
-
-Step 5: Test AnsibleA
-
-ansible all -m ping
 
 
 
@@ -512,6 +523,203 @@ df -h is a Linux command used to check disk space utilization.
 
 df = Disk Filesystem
 -h = Human readable format (GB, MB, TB)
+
+
+
+Ping ---> To ping the manage Nodes
+
+Shell -> To execute Linux commands
+
+Yum--> To install packages
+
+Copy--> Copy the files contropl to manage
+
+Ftech --> retruiive files from manage to control
+
+
+
+Still now we are using AD-HOC commands for onetask
+
+====
+YML
+=====
+
+YML : Yet another markup language
+
+Used for Configuration(human & machione readable)
+
+represent data in Key-value pair
+
+extension --->yml /yaml
+
+...-> end of the file
+--- Seperate of the file
+
+one key--1 value
+
+Ex: id: 101
+    name: Ashok
+
+
+one key ---multiple values :
+
+Ex; Fruits:
+     -Orange
+     -Apple
+     -Grape
+
+one key --have child keys:
+
+EX:
+
+address:
+  city:  Hd
+  state: TG
+  country: India
+
+To perform multiple tasks use PlayBook
+
+==========
+playBook : it is a YML file which contains set of tasks to execute by using  ansible.
+========
+
+using play book we can give instructions to ansible to perform configuration mgmt.
+
+
+Play book contains 3 sections:
+
+1. Host section--> where the play book instrructions executed means target (which managed node /group it will execute)
+
+2. variables --> store the data
+
+3. Task ---> which task perform the ansible 
+
+
+
+We will execute the play book using below commands :
+
+1. ansible-playbook <playbook-yml>
+
+===
+ping.yaml
+==========
+
+---
+- hosts: all
+  remote_user: ansible
+
+  tasks:
+    - name: Test Connectivity
+      ping:
+...
+
+ 
+ansible-playbook ping.yaml -v /-vv> It will give how it executed in detail
+
+ansible-playbook 01-ping.yaml --syntax-check 
+
+ansible-playbook 01-ping.yaml --list-hosts---> whwre exactly the play book execute.
+ansible-playbook 01-ping.yaml --check
+
+ansible-playbook 01-ping.yaml --step---> Confirmation for every step.
+
+
+What is the purpose of -v, -vv, -vvv, -vvvv?
+
+Answer:
+
+These are verbosity levels in Ansible used for troubleshooting and debugging playbook execution. 
+Increasing the number of vs provides more detailed information about task execution, SSH connections, and module operations.
+
+===
+host a static website using ansible
+
+==================
+website.yaml :
+================
+
+---
+- hosts: webservers
+  become: yes(become a ansible root user)
+
+  tasks:
+
+    - name: Install httpd server
+      yum:
+        name: httpd
+        state: present
+
+    - name: Start Apache Service
+      service:
+        name: httpd
+        state: started
+        enabled: yes
+
+    - name: Copy Website Files
+      copy:
+        src: index.html
+        dest: /var/www/html/index.html
+
+...
+
+ansible-playbook website.yaml --syntax-check
+
+ansible-playbook website.yaml --list-hosts
+
+ansible-playbook website.yaml
+
+
+==
+vars--To store the data
+====
+Instaed of writing httpd in 2 times for above example use Vars.
+
+
+
+
+website.yaml :
+================
+
+---
+- hosts: webservers
+  become: yes(become a ansible root user)
+  vars:
+   package_name: httpd
+  tasks:
+
+    - name: Install httpd server
+      yum:
+        name: name: "{{package_name}}"
+        state: present
+
+    - name: Start Apache Service
+      service:
+        name: "{{package_name}}"
+        state: started
+        enabled: yes
+
+    - name: Copy Website Files
+      copy:
+        src: index.html
+        dest: /var/www/html/index.html
+
+Apache HTTPD → Traditional web server
+NGINX → Web server + Reverse Proxy + Load Balancer
+Tomcat → Java Application Server
+NGINX/Apache sit in front of Tomcat and forward requests to applications
+
+=============
+
+Available hosts : ansible all --list-hosts -i inventory
+Graph : ansible-inventory -i inventory --graph
+
+In Json Format : ansible-inventory -i inventory --list
+=================================
+
+
+
+
+
 
 
 

@@ -1,0 +1,199 @@
+In this lab exercise, you will use the hosts below. Please note down some details about these hosts first:
+
+student-node :- This host will act as an Ansible master node where you will create playbooks, inventory, roles etc and you will be running your playbooks from this host itself.
+
+node01 :- This host will act as an Ansible client/remote host where you will setup/install some stuff using Ansible playbooks. Below are the SSH credentials for this host:
+
+User: bob
+Password: caleston123
+
+node02 :- This host will also act as an Ansible client/remote host where you will setup/install some stuff using Ansible playbooks. Below are the SSH credentials for this host:
+
+User: bob
+Password: caleston123
+Note: Please type exit or logout on the terminal or press CTRL + d to log out from a specific node.
+
+
+ssh bob@node01
+
+Exit 
+
+vi inventory
+
+[web]
+node01 ansible_user=bob
+node02 ansible_user=bob
+
+ansible-inventory -i inventory --graph---Check the inventory under master
+
+
+=============================
+1. Step 1: Login to student-node
+=============================
+
+You're already on:
+
+[bob@student-node ~]$
+
+This is your Ansible Control Node.
+
+==========================
+Step 2: Create Inventory File
+============================
+
+vi inventory
+
+Add :
+
+[web]
+node01
+node02
+
+cat inventory
+
+========================
+Step 3: Create ansible.cfg
+=========================
+
+vi ansible.cfg
+
+[defaults]
+inventory=inventory
+host_key_checking=False
+remote_user=bob
+
+
+Why?
+
+So you don't have to type:
+
+-i inventory
+-u bob
+
+=======================
+Step 4: Verify Inventory
+==========================
+ansible-inventory --graph
+
+@all:
+  |--@ungrouped:
+  |--@web:
+  |  |--node01
+  |  |--node02
+
+
+==============
+Step 5: Test Connectivity
+=======================
+
+ansible web -m ping -k
+
+Enter password:caleston123
+
+
+For Example --You logged into Managed Notes :
+
+ssh bob@node01
+
+
+Inventory File
+    ↓
+Contains target servers
+
+ansible.cfg
+    ↓
+Contains default settings
+    (inventory location,
+     default user,
+     SSH settings)
+
+
+Inventory file contains the target/managed nodes on which tasks are executed. ansible.cfg is used to define default settings such as inventory path, default remote user, host key checking, etc., for connecting and managing those nodes. ✅
+
+
+so with out using ansible .cnfg file every time we use inventory file and -u 
+
+If you don't use ansible.cfg, then every command must explicitly tell Ansible:
+
+Which inventory file to use (-i inventory)
+Which user to connect as (-u bob)
+
+Example:
+
+
+ansible web -i inventory -m ping -u bob -k
+
+-i inventory → use inventory file
+-u bob → login as bob
+-k → ask for password
+
+==================
+Without ansible.cfg
+
+Every command:
+
+ansible web -i inventory -m ping -u bob -k
+
+ansible web -i inventory -m copy -a "src=f1.txt dest=/tmp/app.conf" -u bob -k
+
+ansible web -i inventory -m shell -a "df -h" -u bob -k
+
+
+=========================
+With ansible.cfg
+
+
+ansible web -m ping -k
+
+ansible web -m shell -a "df -h" -k
+
+ansible web -m copy -a "src=f1.txt dest=/tmp/app.conf" -k
+
+
+
+Component	Purpose
+
+ssh-keygen	Passwordless login
+inventory	List of target servers
+ansible.cfg	Default Ansible settings
+
+
+
+
+What ansible.cfg does
+
+ansible.cfg has nothing to do with SSH key generation.
+
+It tells Ansible things like:
+
+[defaults]
+inventory=inventory
+remote_user=bob
+host_key_checking=False
+
+Meaning:
+
+Which inventory file to use
+Which user to connect as
+Whether to check host fingerprints
+
+=======================
+Without ansible.cfg
+======================
+
+You must tell Ansible where the inventory is
+
+ansible web -i inventory -m ping
+
+================
+With ansible.cfg
+=================
+
+ansible web -m ping
+
+
+
+
+
+
+

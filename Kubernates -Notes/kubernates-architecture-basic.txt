@@ -824,7 +824,11 @@ Step 10: Kube-proxy
 - It enables network traffic to reach the appropriate backend Pods.
 
 
+"When I deploy an application, I use kubectl to send a request to the API Server. The API Server validates the request and stores the desired state in ETCD.
 
+The Deployment Controller ensures the required Pod objects are created. The Scheduler assigns those Pods to suitable worker nodes.
+
+Then Kubelet receives the Pod specifications and communicates with containerd through CRI. containerd uses runc to start the containers, and finally my application runs inside the container."
 
 
 

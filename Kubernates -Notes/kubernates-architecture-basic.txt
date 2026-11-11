@@ -781,8 +781,47 @@ ctr tasks list
 
 
 
-
-
+Step-by-step theoretical flow
+Step 1: kubectl
+- First, we write a Deployment YAML file.
+- We execute kubectl apply -f deployment.yaml.
+- kubectl sends the deployment request to the Kubernetes API Server.
+Step 2: API Server
+- API Server is the entry point of the Kubernetes Control Plane.
+- It receives the request from kubectl.
+- It authenticates and authorizes the request and validates the configuration.
+- It processes the request and stores the desired state in ETCD.
+Step 3: ETCD
+- ETCD is a distributed key-value database.
+- It stores Kubernetes cluster information.
+- It stores the desired state of resources, such as Deployment configurations and Pod information.
+Step 4: Controller Manager
+- Controller Manager continuously monitors the cluster.
+- The Deployment Controller identifies how many replicas are required.
+- Suppose we request 3 replicas, it ensures that 3 Pod objects are created through the API Server.
+Step 5: Scheduler
+- Scheduler watches for newly created Pods that are not assigned to any worker node.
+- It identifies suitable worker nodes based on CPU, memory, affinity, taints and tolerations.
+- It selects a suitable worker node and informs the API Server about the node assignment.
+Step 6: Kubelet
+- Kubelet runs on every worker node.
+- It watches the API Server for Pods assigned to its node.
+- It receives the Pod specification.
+- It communicates with the container runtime through CRI.
+Step 7: Container Runtime (containerd)
+- containerd receives container lifecycle requests through CRI.
+- It pulls the required container image if it is not already available.
+- It creates and manages the container.
+Step 8: runc
+- containerd uses a low-level runtime such as runc.
+- runc creates and starts the container using Linux kernel features such as namespaces and cgroups.
+Step 9: Application starts
+- Your Java application starts inside the container.
+- Kubelet monitors the Pod and container health.
+- Kubernetes updates the Pod status through the API Server.
+Step 10: Kube-proxy
+- Kube-proxy helps manage network rules for Kubernetes Services.
+- It enables network traffic to reach the appropriate backend Pods.
 
 
 

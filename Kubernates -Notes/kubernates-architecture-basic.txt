@@ -1,4 +1,13 @@
-kubernates : simplifies the deployment, scaling, and management of containerized applications through automation.
+Docker ---> Containerization Platform 
+
+Note : Packaging the appcode and dependencies which are used for running application in a single unit 
+
+Kubernates --> orchestration Platform
+
+Note: which is managing the containers.
+
+
+kubernates : simplifies the deployment, scaling, and management of containerized  through automation.
 
 1. Work nodes ----> That carry Containers 
 
@@ -54,19 +63,61 @@ Components :
 3. Schedular 
 4. ETCD 
 
-1. API Server
-   - Entry point of Kubernetes cluster.
-   - Receives all requests.
+To deploy our application in k8S we need to commuicate with control plane 
+=============
+1. API Server:
+==============
 
+ API Server is the entry point of the Kubernetes cluster
+We communicate with the API Server using kubectl.
+It receives requests from users.
+It validates and processes requests.
+It stores cluster state in ETCD.
+
+API Server receives your request, validates it and stores the Deployment information in ETCD.
+
+ETCD stores something like:
+Information	Value
+Application	Java App
+Desired replicas	3
+Current replicas	0
+
+This is the desired state: 3 Pods should be running.
+
+
+==============
 2. Scheduler
+============
+
    - Assigns pods to worker nodes.
 
+Scheduler watches the API Server for newly created Pods that don't have a node assigned.
+It identifies a suitable worker node.
+It considers CPU, memory, resource requests, taints, tolerations and affinity
+It informs the API Server about the selected node.
+
+==========================
 3. Controller Manager
-   - Ensures desired state matches current state.
+===========================
+Continuously monitors the cluster.
+Checks the desired state against the actual state.
+Takes corrective action if they don't match..
 
+You create a Deployment with 3 replicas.
+replicas: 3
+
+Suppose one Pod fails
+Controller Manager ensures the desired state is maintained by coordinating the relevant controllers, which request a replacement Pod through the API Server.
+
+==============
 4. ETCD
-   - Key-value database storing cluster information.
+==============
 
+- ETCD is a distributed key-value database.
+- Stores Kubernetes cluster information.
+- Stores configuration, desired state and cluster state.
+- API Server communicates with ETCD to read and write data.
+Example: Deployment information, Pod information, Configurations and Secrets.
 
 Kubernetes Cluster = Company
 
@@ -86,7 +137,7 @@ Worker Node
 └── Container Runtime
 
 ===============
-1. Kublet:
+1. Kublet:Communicates with the API Server
 =================
  running on every worker node.
 
@@ -184,6 +235,29 @@ containerd through CRI.
 
 Docker → containerd → runc → Container
 Kubelet → CRI → containerd → runc → Container
+
+
+Q: What is the difference between Docker and containerd?
+
+"Docker is a container platform used to build, package, distribute and run containerized applications. 
+containerd is a container runtime responsible for managing the container lifecycle, such as pulling images, creating and starting containers.
+ Kubernetes can communicate directly with containerd through CRI without requiring Docker Engine."
+
+Docker
+Docker helps us:
+1. Build – Build Docker images.
+2. Package – Package application and dependencies into images.
+3. Run – Run containers.
+4. Distribute – Push and pull images from registries.
+
+
+containerd
+containerd directly manages the container lifecycle:
+1. Pull images.
+2. Create containers.
+3. Start containers.
+4. Stop containers.
+5. Manage container execution
 
 =================
 Before Containered
@@ -479,7 +553,8 @@ Admin
  └── crictl ─► CRI ────► containerd
 
 
-CTR is a containerd command-line tool used to manage containers directly. CRI is the interface used by Kubelet to communicate with container runtimes such as containerd. CRICTL is a command-line tool that communicates with the container runtime through the CRI interface and is mainly used for Kubernetes troubleshooting.
+CTR is a containerd command-line tool used to manage containers directly. CRI is the interface used by Kubelet to communicate with container runtimes such as containerd.
+ CRICTL is a command-line tool that communicates with the container runtime through the CRI interface and is mainly used for Kubernetes troubleshooting.
 
 
 ctr :
@@ -547,7 +622,8 @@ Tasks
 Snapshots
 
 
-kubectl manages Kubernetes resources such as Pods, Deployments, and Services. ctr manages containers directly in containerd. While both can ultimately result in containers running, kubectl operates at the Kubernetes level, whereas ctr operates at the container runtime level.
+kubectl manages Kubernetes resources such as Pods, Deployments, and Services. ctr manages containers directly in containerd. While both can ultimately result in containers running, kubectl operates at the Kubernetes level,
+ whereas ctr operates at the container runtime level.
 
 kubectl → Cluster Level
 
@@ -648,6 +724,76 @@ containerd → Container Runtime
 ctr      → Directly manage containerd
 
 crictl   → Troubleshoot containerd through CRI
+
+
+
+
+You can explain it like this:
+- kubectl: Used to communicate with the Kubernetes API Server and manage cluster resources.
+- ctr: Used to communicate directly with containerd.
+- crictl: Used to communicate with a CRI-compatible container runtime for debugging and inspecting containers.
+
+
+Command	       Communicates with	                        Purpose
+kubectl	         Kubernetes API Server	            Manage cluster resources
+ctr	  	      containerd                 Direct  containerd operations
+crictl		      CRI runtime endpoint           Debug Pods and containers
+
+
+6. Small interview test
+Suppose your Kubernetes Pod is not running, and you want to inspect the container runtime on the worker node.
+
+Which command-line tool would you use?
+
+A. kubectl only
+
+B. ctr
+
+C. crictl
+
+D. Both B and C can be useful, depending on what you want to inspect.
+
+Try answering, bro!
+
+
+Excellent bro!
+- ctr → Directly interacts with containerd.
+- crictl → Interacts with the container runtime through CRI.
+Real-time troubleshooting example
+Suppose a Pod is stuck in ContainerCreating.
+
+On the worker node, you can use:
+
+# Check Pod sand containers
+crictl pods
+
+# Check containers
+crictl ps -a
+
+# Check container images
+crictl images
+
+# Check containerd containers
+ctr containers list
+
+# Check containerd tasks
+ctr tasks list
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

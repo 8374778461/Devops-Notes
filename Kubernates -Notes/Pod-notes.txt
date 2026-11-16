@@ -1132,13 +1132,155 @@ spec:
         averageUtilization: 70
 
 
+Suppose your company has an e-commerce application running on Kubernetes:
+
+Normal traffic → 3 pods
+Sale starts, CPU reaches 70-80%
+HPA detects high utilization
+Automatically scales to 10 pods
+After traffic drops, HPA scales back to 3 pods
 
 
 
 
+Users → Load Balancer → Pods (3)
+
+CPU > 70%
+       ↓
+      HPA
+       ↓
+Pods increase from 3 → 5 → 10
+
+Traffic decreases
+       ↓
+      HPA
+       ↓
+Pods decrease from 10 → 5 → 3
+
+Metrics Server is the component that collects resource usage metrics from Kubernetes nodes and pods.
+
+It mainly provides:
+
+CPU utilization
+Memory utilization
+
+
+Manually we increasde load to Teat HPA using tools 
+
+1. Busy box.
+
+2. Apache Bench
+
+3. JMeter.
+
+1--> Generate CPU Load inside a Pod :
+
+kubectl run -it --rm load-generator --image=busybox /bin/sh
+
+Inside the pod:
+
+while true; do :; done
+
+====
+For our application
+===============
+
+while true; do
+  wget -q -O- http://springboot-app-service
+done
+
+Continously sending the request.
+
+We create a temporary BusyBox pod and continuously send requests to the application service using a while loop with wget. 
+This generates load on the application, allowing us to test HPA behavior and observe Kubernetes automatically scaling pods based on CPU or memory utilization.
+
+==========
+Daemons set
+==========
+DaemonSet is a Kubernetes controller that ensures one Pod runs on every worker node.
+
+===================
+1. Log Collection (Most Common)
+===============================
+Companies use Fluentd, Fluent Bit, Filebeat as DaemonSets.
+
+✅ Why?
+
+Every node generates logs.
+One log collector pod runs on each node.
+Collects logs and sends them to ELK (Elasticsearch, Logstash, Kibana) or Splunk.
+
+Node1 -> Fluent Bit Pod
+Node2 -> Fluent Bit Pod
+Node3 -> Fluent Bit Pod
+
+
+=================
+2. Monitoring Agents
+========================
+
+Tools:
+
+Prometheus Node Exporter
+Datadog Agent
+New Relic Agent
+
+✅ Why?
+
+Need CPU, Memory, Disk metrics from every node.
+DaemonSet ensures monitoring agent exists on all nodes.
+
+
+DaemonSet is used when a pod must run on every node, such as log collectors, monitoring agents, security agents, network plugins, and storage drivers
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nginx-daemonset
+
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+
+  template:
+    metadata:
+      labels:
+        app: nginx
+
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+
+
+Example Output
+
+If you have 3 nodes:
+
+node01 node02 node03
+
+Daemon cretaes :
+
+nginx-daemonset-abc   node01
+nginx-daemonset-def   node02
+nginx-daemonset-ghi   node03
 
 
 
 
+1. ConfigMaps 
 
+2. Secrets
 
+3. Persistent Volumes (PV) & Persistent Volume Claims (PVC)
+
+4. StatefulSets
+
+6. RBAC
+
+7. Helm
+
+9. Network Policies
+
+10. Monitoring & Logging

@@ -1,0 +1,21 @@
+
+1. Kubernates
+
+. configs
+
+. Secrets
+
+. Volume
+
+. Statesful
+
+. Storage Classes 
+
+. RBAC 
+
+. Node Selector / Affinity / Anti-Affinity
+
+. EKS Architecture
+
+
+Terraform 

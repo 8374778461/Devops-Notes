@@ -1,0 +1,639 @@
+HELM :Package manager for Kubernetes, just like yum for Linux.
+===============
+Without Helm ❌
+======================
+
+DevOps team writes many files:
+
+deployment.yaml
+service.yaml
+configmap.yaml
+secret.yaml
+ingress.yaml
+hpa.yaml
+
+Deploy:
+
+kubectl apply -f .
+
+=============
+Problem:
+===========
+
+Dev = 2 replicas
+QA = 3 replicas
+Prod = 10 replicas
+
+Need separate YAMLs for each environment.
+
+
+
+With Helm ✅
+Project Structure
+
+
+my-app-chart/
+
+├── Chart.yaml
+├── values.yaml
+└── templates/
+    ├── deployment.yaml
+    ├── service.yaml
+    ├── ingress.yaml
+    └── configmap.yaml
+
+
+
+
+
+
+
+
+
+
+chart : Bundle/package of our App.
+
+Helm -Repository(bitnami) :  Most popular charts are available.
+
+It contains many charts 
+
+We serach in repo--> helm search repo bitmani/grep nginx
+
+
+======
+Components of HELM
+=======
+
+
+1. REpo (bitNAmi repo)
+
+2. Chart---> bundle / packages ---> All yamls are bundled to chart
+
+for Example :
+
+You insstall and expose Nginx you need 
+ 1. Deployment .yaml
+2. Service.yaml
+3. namespace.yaml
+
+so instead of creating all Yaml files , we use HELM chart ( All bundled means which are required for install and exposes all are bunded)
+
+so just install HELM Chart and fetch From HELM REPO.
+
+==================================================================
+Automatically use HELM charts and insytall Expose NGINX Service :
+===========================================================================
+1. Install HELM on Control -Node :
+
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+helm version
+version.BuildInfo{Version:"v3.x.x"}
+
+2. Add HELM Repository :ADd to repo where you insatll the HELM.
+
+For NGINX, Bitnami repo is commonly used.
+
+helm repo add bitnami https://charts.bitnami.com/bitnami
+
+
+3. Step 3: Fetch Latest Charts Information
+
+helm repo update
+
+Helm downloads the latest chart metadata from the repository.
+
+
+4. Step 4: Search NGINX Chart
+
+helm search repo nginx
+
+
+5. Install NGINX :
+
+helm install my-nginx bitnami/nginx
+
+
+6. Check Deployment :
+
+kubectl get pods
+
+kubectl get svc
+
+helm list
+
+
+7. See what Helm created:
+kubectl get all
+
+
+Deployment
+ReplicaSet
+Pod
+Service
+
+
+====
+
+
+====
+For Insstall Promotheus 
+
+===
+
+1. just add HELM repo one time :
+
+helm repo add bitnami https://charts.bitnami.com/bitnami
+
+2. HELm repo update 
+
+3. Then Install any Bitnami Chart :
+
+helm search repo prometheus
+
+helm install prometheus bitnami/kube-prometheus
+helm install nginx bitnami/nginx
+helm install mysql bitnami/mysql
+helm install redis bitnami/redis
+
+============================
+
+Search resource in HELM ---> helm serach <repo/hub> <resoureces name>
+
+1. EX: helm search hub wordpress
+
+
+2. Add Bitnami to HELM:
+
+helm repo add bitnami https://charts.bitnami.com/bitnami
+
+
+
+
+==================
+4. helm repo list: How many helm chart repositories are there in the controlplane node now?
+=================
+
+
+Set the release Name to: amaze-surf
+
+1. instaLL  resources from Repo: helm install amaze-surf bitnami/apache
+
+2. To check the version HELM : helm list
+
+3. Search resources from Repo : helm search repo wordpress/nginx
+
+1. DElelte HELM : helm uninstall my-nginx
+
+2. Delete REPO: helm repo remove hashicorp
+
+2. ROll Back : helm rollback my-nginx 1(Name which is starting while give Helm -list i.e is release name)
+
+3. Add  repo to our Control Plane : helm repo add bitnami https://charts.bitnami.com/bitnami
+
+
+4. Upgarde Version :
+
+--> first Check latest Vesrion : 
+
+
+NAME            CHART VERSION   APP VERSION
+bitnami/nginx   22.3.1          1.29.1
+bitnami/nginx   22.2.0          1.29.0
+bitnami/nginx   21.0.0          1.28.0
+
+
+---> Check Latest relaese 
+ helm list 
+
+NAME        NAMESPACE   REVISION   STATUS
+nginx-prod  default     1          deployed
+
+
+helm upgrade <vesrion-Name/release Name>  bitnami/nginx(resource) --version 18.3.6
+
+
+
+
+
+===============
+
+So as of now we are using REPO Charts right now we create charts and add to repo 
+=======================
+
+helm craete myapp
+
+
+myapp/
+├── Chart.yaml
+├── values.yaml
+├── charts/
+└── templates/
+    ├── deployment.yaml
+    ├── service.yaml
+    ├── ingress.yaml
+    └── ...
+
+
+
+===
+chart.yaml
+===
+
+Chart.yaml is the metadata file of a Helm chart.
+ It contains chart name, chart version, application version, description, and chart type. Helm reads this file to identify and manage the chart.
+
+apiVersion: v2
+name: myapp
+version: 1.0.0
+appVersion: "1.0"
+
+========
+Values.yaml
+=======
+values.yaml = variables file in Helm.
+
+Instead of hardcoding values in templates, we keep them in values.yaml.
+
+values.yaml stores configurable values such as image name, image tag, replica count, service type, and ports. 
+Templates access these values using {{ .Values.<variable> }}. This allows the same Helm chart to be deployed across Dev, QA, and Prod environments with different configurations.
+
+Example :
+
+
+replicaCount: 2
+
+image:
+  repository: nginx
+  tag: latest
+
+service:
+  type: ClusterIP
+  port: 80
+
+========
+templates/deployment.yaml
+===========================
+
+Uses values from values.yaml
+
+before variables/values :
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springboot-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: springboot-app
+  template:
+    metadata:
+      labels:
+        app: springboot-app
+    spec:
+      containers:
+      - name: springboot-app
+        image: myrepo/springboot-app:v1
+        ports:
+        - containerPort: 8080
+=============
+After variable
+==============
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+
+spec:
+  replicas: {{ .Values.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: nginx
+
+  template:
+    metadata:
+      labels:
+        app: nginx
+
+    spec:
+      containers:
+      - name: nginx
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+
+======
+templates/service.yaml
+=============
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+
+spec:
+  type: {{ .Values.service.type }}
+
+  ports:
+  - port: {{ .Values.service.port }}
+
+  selector:
+    app: nginx
+
+
+
+so after writing all then deploy the HELM 
+
+
+come to folder my-app
+
+helm install <release-name> ./my-app
+
+helm list:
+
+helm list
+NAME    NAMESPACE       REVISION        UPDATED                                 STATUS          CHART           APP VERSION
+dev     default         1               2026-11-16 06:27:13.93405502 +0000 UTC  deployed        my-app-0.1.0    1.16.0     
+
+
+
+=====
+Now based on prod, dev, uat 
+===============
+Use .Release.Name in all resource names. Then the same chart can be installed as dev, prod, qa without conflicts.
+
+my-app/
+├── Chart.yaml
+├── values.yaml
+└── templates/
+    ├── deployment.yaml
+    └── service.yaml
+
+===
+values.yaml
+==========
+replicaCount: 1
+
+image:
+  repository: nginx
+  tag: latest
+
+service:
+  type: ClusterIP
+  port: 80
+
+
+======
+templates/deployment.yaml
+======================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-nginx
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-nginx
+
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-nginx
+
+    spec:
+      containers:
+      - name: nginx
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+
+        ports:
+        - containerPort: 80
+
+
+==================
+templates/service.yaml
+=========================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-nginx
+
+spec:
+  type: {{ .Values.service.type }}
+
+  selector:
+    app: {{ .Release.Name }}-nginx
+
+  ports:
+  - port: {{ .Values.service.port }}
+    targetPort: 80
+    protocol: TCP
+
+================
+dev-values.yaml
+===================
+
+replicaCount: 1
+
+image:
+  repository: nginx
+  tag: 1.25
+
+service:
+  type: ClusterIP
+  port: 80
+
+
+=================
+prod-values.yaml
+==========
+
+replicaCount: 3
+
+image:
+  repository: nginx
+  tag: 1.25
+
+service:
+  type: ClusterIP
+  port: 80
+
+===
+Before check 
+=========
+
+helm template dev . -f dev-values.yaml
+
+helm template prod . -f prod-values.yaml
+
+===install
+=======
+helm install dev . -f dev-values.yaml
+
+
+helm install prod . -f prod-values.yaml
+
+
+kubectl get deploy,svc
+
+
+====
+helm package Chart
+=======
+Convert chart into distributable package:
+
+helm package myapp              
+
+
+o/p: myapp-1.0.0.tgz
+
+
+
+==========
+move to repo
+=============
+
+
+helm-charts/
+├── myapp-1.0.0.tgz
+
+helm repo index .
+
+
+helm-charts/
+├── myapp-1.0.0.tgz
+├── index.yaml
+
+
+What is inside index.yaml?
+
+apiVersion: v1
+entries:
+  myapp:
+  - version: 1.0.0
+    urls:
+    - myapp-1.0.0.tgz
+
+This file tells Helm:
+
+
+Available Chart : myapp
+Version         : 1.0.0
+Package         : myapp-1.0.0.tgz
+
+
+index.yaml is like a catalog of available charts.
+
+
+
+Step 4: Push to GitHub
+
+Create repository:
+
+helm-charts
+
+index.yaml
+myapp-1.0.0.tgz
+``
+https://company.github.io/helm-charts
+
+
+
+
+then use the repo:
+
+
+helm repo add myrepo https://company.github.io/helm-charts
+
+
+helm repo update
+
+helm search repo myapp
+
+
+helm install prod myrepo/myapp
+``
+
+
+
+
+
+helm create myapp
+        ↓
+helm package myapp
+        ↓
+myapp-1.0.0.tgz
+        ↓
+helm repo index .
+        ↓
+GitHub Pages / Nexus / Artifactory
+        ↓
+helm repo add company-repo
+        ↓
+helm install myapp company-repo/myapp
+
+
+
+
+
+
+
+
+
+helm lint ./myapp      # check errors
+
+helm template myapp ./myapp   # preview YAML
+
+helm install myapp ./myapp    # deploy
+
+helm list
+
+kubectl get pods
+
+
+
+1. helm create myapp
+         ↓
+2. helm package myapp
+         ↓
+   myapp-0.1.0.tgz
+         ↓
+3. helm repo index .
+         ↓
+   index.yaml created
+         ↓
+4. Create GitHub repository
+   (example: helm-charts)
+         ↓
+5. Upload
+   - myapp-0.1.0.tgz
+   - index.yaml
+         ↓
+6. Enable GitHub Pages
+         ↓
+7. Get URL
+   https://username.github.io/helm-charts
+         ↓
+8. Add repo in Helm
+   helm repo add myrepo https://username.github.io/helm-charts
+         ↓
+9. Update repo
+   helm repo update
+         ↓
+10. Search chart
+    helm search repo myrepo
+         ↓
+11. Install chart
+    helm install myapp myrepo/myapp
+
+
+
+
+
+
+

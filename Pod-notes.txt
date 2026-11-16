@@ -1,0 +1,1286 @@
+===
+Pod :
+===
+
+A Pod is the smallest deployable unit in Kubernetes.
+
+
+A Pod is the smallest execution unit in Kubernetes that encapsulates one or more containers, storage resources, network IP, and container configurations.
+
+Creation of pod :
+
+
+1. Using Command:
+
+
+kubectl run nginx-pod --image=nginx
+
+
+kubectl get pods 
+
+
+
+2. Using YAML:
+
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+
+
+
+kubectl apply -f pod.yaml
+
+
+kubectl get pods
+
+kubectl describe pod nginx-pod
+
+kubectl logs nginx-pod
+
+
+kubectl exec -it nginx-pod -- sh ---Acess pod or eneter into Pod 
+
+
+kubectl delete pod nginx-pod
+
+
+
+Multi-Container Pod:
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-pod
+spec:
+  containers:
+  - name: app
+    image: nginx
+
+  - name: sidecar
+    image: busybox
+
+
+
+Why multiple containers in one Pod?
+
+Answer:
+
+Containers inside a Pod share network and storage
+
+
+
+Pod Networking :
+
+
+Every Pod :
+Unique IP Address
+
+Communication:
+Pod → Pod
+Pod → Service
+Service → Pod
+
+
+
+Pod in CrashLoopBackOff :kubectl logs pod-name
+
+CrashLoopBackOff means the container starts and crashes repeatedly. Kubernetes tries to restart it multiple times but the application keeps failing.
+
+Application crash
+Wrong environment variables
+Database unreachable
+Port Conflict
+In sufficient memory
+
+
+ImagePullBackOff : kubectl describe pod pod-name
+
+
+ImagePullBackOff occurs when Kubernetes cannot pull the container image.
+
+Wrong image name
+Private registry issue
+Authentication issue
+
+============
+Pod Life cycle
+============
+
+Pod passes through several states:
+
+
+Pending :
+
+Pod accepted by cluster
+Image downloading
+
+Running: Container started successfully
+Succeeded : Job completed successfully
+Failed : Container terminated with error
+Unknown : Kubernetes can't communicate with node
+
+
+
+
+Application is down. Where will you start troubleshooting?
+
+
+
+kubectl get pods
+kubectl describe pod pod-name
+kubectl logs pod-name
+kubectl get svc
+kubectl get ingress
+
+
+
+One Pod is consuming too much memory.
+kubectl top pod
+
+
+
+====================
+What is Readiness Probe?
+=============================
+
+Readiness Probe checks whether the application is ready to accept user requests. If the check fails, Kubernetes stops sending traffic to the pod but does not restart it.
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+
+
+Kubernetes checks http://<pod-ip>:8080/health to see if the application is ready to receive user traffic.
+
+
+If /health returns 200 OK --> send traffic to ap
+If /health fails --> Kubernetes does NOT restart the Pod.
+
+
+
+
+
+
+
+=========================
+What is Liveness Probe?
+=========================
+
+Liveness Probe checks whether the application is healthy and running. If the check fails, Kubernetes restarts the container automatically.
+
+
+
+It will check the application is live for evry time below syntax:
+
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+
+
+
+Means :
+
+http://localhost:8080/health //curl http://<pod-ip>:8080/health
+
+
+and the application returns:
+
+{
+  "status": "UP"
+}
+
+
+✅ Application is healthy
+
+✅ No action needed
+
+
+
+If we got failure it reastart the application 
+
+
+
+Liveness Probe Failed
+↓
+Kubernetes Restarts Container
+
+
+
+
+✅ Readiness = Stop Traffic
+ ✅ Liveness = Restart Container
+
+
+===========
+Service:
+=======
+
+suppose you have a pod . 
+
+Pod1
+IP = 10.1.1.5
+
+Your application is running in this pod.
+
+Now the pod crashes.
+
+Kubernetes creates a new pod:
+
+Pod2
+IP = 10.1.1.20
+
+The IP changed!
+
+If users were using the old IP:
+
+10.1.1.5
+
+they can no longer access the application.
+
+That's why we use a Service.
+
+
+A Service provides a fixed IP and DNS name for accessing pods.
+
+
+Users
+  |
+Service
+  |
+------------------
+|       |        |
+Pod1   Pod2    Pod3
+
+
+The Service sits in front of multiple pods and forwards traffic.
+
+======
+Service.yaml
+=======
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-pod
+spec:
+  containers:
+  - name: app
+    image: nginx
+
+  - name: sidecar
+    image: busybox
+
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app: app-pod
+  ports:
+  - port: 80
+    targetPort: 80
+
+==============
+Selector:
+==============
+
+selector:
+  app: app-pod
+
+Find all pods that have label app=app-pod.
+
+
+if we are not specified any type of service it will take cluster so it can aceesoble inside the cluster.
+
+
+Inside the Kubernetes Cluster
+
+Another pod can access it using the service name:
+
+curl http://nginx-service
+
+==========
+Node Port:
+==========
+
+NodePort means exposing your application outside the Kubernetes cluster using a port on every worker node.
+
+
+
+Browser
+  |
+30080 (nodePort)
+  |
+80 (Service Port)
+  |
+80 (Container Port)
+
+
+
+target Port : The actual port on which the application inside the container is listening.
+
+Port : The port exposed by the Kubernetes Service within the cluster.
+
+nodePort : The external port opened on every Kubernetes node, allowing users outside the cluster to access the application.
+
+
+Browser
+   |
+http://192.168.1.10:30080
+   |
+NodePort Service
+   |
+Pod
+
+
+Node IP = 192.168.1.10
+nodePort = 30080
+
+======
+Deployment .yaml
+===========
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springboot-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: springboot
+  template:
+    metadata:
+      labels:
+        app: springboot
+    spec:
+      containers:
+      - name: springboot-container
+        image: springboot-app:latest
+
+
+
+Service:
+
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: springboot-service
+spec:
+  type: NodePort
+  selector:
+    app: springboot
+  ports:
+  - port: 80
+    targetPort: 8080
+    nodePort: 30080
+
+
+Service Selector
+
+
+spec:
+  selector:
+    app: springboot
+
+Deployment Labels
+
+
+template:
+  metadata:
+    labels:
+      app: springboot
+
+The Service selector must match the Pod labels created by the Deployment.
+
+
+
+Service Selector
+app=springboot
+       |
+       v
+--------------------
+|        |         |
+Pod1    Pod2      Pod3
+app=    app=      app=
+spring  spring    spring
+boot    boot      boot
+
+==============
+Load Balancer :
+=================
+
+Why LoadBalancer?
+
+with node Port :
+
+http://192.168.1.100:30080
+
+Problems:
+
+Users need to know Node IP.
+If node changes, access changes.
+Not suitable for production.
+
+So in AWS/Azure/GCP, Kubernetes creates a cloud Load Balancer.
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: springboot-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: springboot
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+
+
+Get Work node IP
+
+kubectl get nodes -o wide
+
+Get Services :
+
+kubectl get svc
+
+
+If in case selector name does not matches the label pod name we get a error we check
+
+
+kubectl get endpoints springboot-service[Service name]
+
+so your applicaation cant be acessible 
+
+
+kubectl get endpoints springboot-service
+
+
+Case 1: Endpoints are present
+
+springboot-service   10.244.0.5:8080
+
+Case 2: No endpoints
+
+
+springboot-service   <none>
+
+
+It shows the backend pod IPs associated with the service. If pod IPs are listed, the service can route traffic to those pods. If the endpoints are empty, the service is not connected to any pods, usually because of a selector-label mismatch.
+
+
+kubectl get pods --show-labels
+
+
+NAME                         READY   STATUS    LABELS
+springboot-7f9f6b8c7-abcde  1/1     Running   app=springboot
+springboot-7f9f6b8c7-fghij  1/1     Running   app=springboot
+nginx-6c7d8f9d-xzy12        1/1     Running   app=nginx
+
+
+==============
+Ingress
+=======
+
+Problem with LoadBalancer :
+
+A LoadBalancer exposes one service to the outside world.
+
+Suppose you have 3 applications:
+
+Employee App
+Product App
+Order App
+
+Using LoadBalancer:
+
+
+Employee App → LoadBalancer1 → Public IP1
+Product App  → LoadBalancer2 → Public IP2
+Order App    → LoadBalancer3 → Public IP3
+
+
+❌ Multiple Public IPs
+
+❌ Higher cloud cost
+
+
+
+Feature	   	LoadBalancer	     	Ingress
+Exposes Service	   Yes			Yes
+Multiple Apps       No		        Yes
+URL-based Routing   No	                Yes
+Host-based Routing  No	                 Yes
+Cost	         Higher	                   Lower
+Public IPs	One per Service 	One for many Services
+
+
+
+
+
+
+
+Ingress is a Kubernetes resource that routes external traffic to services based on:
+
+Host name
+URL path
+
+
+Internet
+    |
+Ingress
+    |
+-----------------------
+|          |          |
+Emp      Product    Order
+Svc       Svc        Svc
+
+Instead of :
+
+52.10.10.1
+52.10.10.2
+52.10.10.3
+
+Users access:
+
+
+company.com/employee
+company.com/product
+company.com/order
+
+
+In Pod runs the application, 
+Service exposes the Pods, and 
+Ingress exposes multiple Services using a single domain name and 
+routes traffic to the correct application.
+
+
+rules:
+- host: company.com
+  http:
+    paths:
+
+    - path: /employee
+      backend:
+        service:
+          name: employee-service
+          port:
+            number: 80
+
+    - path: /product
+      backend:
+        service:
+          name: product-service
+          port:
+            number: 80
+
+    - path: /order
+      backend:
+        service:
+          name: order-service
+          port:
+            number: 80
+
+
+======
+Name Space
+
+=========
+
+Logical partition inside a Kubernates.
+
+
+
+
+Cluster
+ |
+ +--dev Namespace
+ +--qa Namespace
+ +--prod Namespace
+
+
+
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev
+
+
+kubectl get namespaces
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springboot-app
+  namespace: dev
+spec:
+  replicas: 2
+
+
+pods In dev
+
+kubectl get pods -n dev
+
+Deplotments in dev :
+
+kubectl get deployments -n dev
+
+Services in dev
+
+kubectl get service -n dev
+
+
+
+Service Communication Across Namespaces
+
+
+Namespace: database
+Service: mysql-service
+
+
+Namespace: dev
+Pod: springboot-app
+
+mysql-service.database.svc.cluster.local
+
+
+spring.datasource.url=jdbc:mysql://mysql-service.database:3306/employeesdb
+
+==========================
+As of now we created pods directly then we dont get Self healing capability.
+
+
+but in kubernates we have advantages:
+
+1. Self Healing
+
+2. Auto scaling.
+
+
+We achieve above advantages we use some resources 
+
+1. Replication Controller
+
+2. Replication set
+
+3. Deployment
+
+4. Daemon set
+
+5. Stateful set 
+
+
+=============
+1. Re[plica Cntroller :is an old Kubernetes object
+===================
+"The desired number of Pods are always running."
+
+
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: nginx-rc
+spec:
+  replicas: 3
+
+  selector:
+    app: nginx
+
+  template:
+    metadata:
+      labels:
+        app: nginx
+
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+
+
+
+We can increase the replicas using commands:
+
+
+kubectl scale rc nginx-rc --replicas=5
+
+Limitations :
+
+RC supports only Eqality -based Selector:
+
+selector:
+  app: nginx
+
+It does not contains Advanced label Selections (set -based Selecors)
+
+================
+Replication Set:
+===================
+
+
+ReplicaSet is a Kubernetes controller that maintains the required number of Pods.
+
+we can scale up and scale down pods using Replicaset
+
+Both Replication controller and Replicaset are same but replication controller is old 
+
+The difference between replication Controller and ReplicaSet IS Selector 
+
+1.  (RC)--Equlity Selector-> Only Exact Matching & apiVersion RC-->V1
+
+2.  (RS)--Equlity Selector,Set based Seklector--> Supports advanced Label Selectors  & Rs --> apps/v1
+
+
+===============
+equlaity : Example:
+==================
+
+Pod1:
+  labels:
+    app: nginx
+
+Pod2:
+  labels:
+    app: nginx
+
+Pod3:
+  labels:
+    app: apache
+
+======================
+
+selector:
+  app: nginx
+
+
+✅ Pod1 selected
+
+✅ Pod2 selected
+
+❌ Pod3 not selected
+
+beacuse it matches only exact pod 
+
+app= nginx
+
+===========
+Set based
+==============
+
+Select pods from multiple values.
+
+
+Example :
+
+Pod1:
+  labels:
+    env: dev
+
+Pod2:
+  labels:
+    env: qa
+
+Pod3:
+  labels:
+    env: prod
+
+
+Selector:
+
+selector:
+  matchExpressions:
+  - key: env
+    operator: In
+    values:
+    - dev
+    - qa
+
+✅ Pod1 selected
+
+✅ Pod2 selected
+
+❌ Pod3 not selected
+
+
+
+Equality Selctor:app = nginx
+
+One value only ✅
+
+Set-Based Selector:app IN (nginx, apache)
+
+Multiple values ✅
+
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: nginx-rs
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: nginx
+
+  template:
+    metadata:
+      labels:
+        app: nginx
+
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+
+kubectl get rs
+
+kubectl scale rs nginx-rs --replicas=5
+
+
+A ReplicaSet mainly provides:
+
+✅ Maintain desired number of Pods
+ ✅ Scale Up Pods
+
+==============
+Deployment
+============
+
+Why deployment:
+
+1. Suppose you create a Pod:
+
+Pod1
+
+If it crashes:
+
+Application Down
+
+2. Suppose you create a ReplicaSet:
+
+ReplicaSet
+   |
+3 Pods
+
+It can recreate podsbut updating application versions becomes difficult.
+
+
+❌ Rolling Updates (not native)
+ ❌ Rollback
+ ❌ Revision History
+
+✅ Pod Management
+ ✅ Replica Management
+ ✅ Auto Healing
+ ✅ Scaling
+ ✅ Rolling Updates
+ ✅ Rollbacks
+
+you create Deployment --> automatically creates Replicaset--->then replicaset Automatically creates pods
+
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springboot-deployment
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: springboot
+
+  template:
+    metadata:
+      labels:
+        app: springboot
+
+    spec:
+      containers:
+      - name: springboot-container
+        image: springboot:v1
+
+        ports:
+        - containerPort: 8080
+
+
+kubectl get deployments
+
+================
+Scalling Using Deployment :
+================
+
+kubectl scale deployment <Deployment-name> --replicas=5
+
+=============
+Rolling update:
+===============
+
+
+Rolling Update means updating an application gradually without downtime.
+
+Instead of stopping all old pods and creating new ones, Kubernetes replaces pods one by one (or in batches) so users can continue accessing the application.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deploy
+spec:
+  replicas: 3
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+
+  selector:
+    matchLabels:
+      app: nginx
+
+  template:
+    metadata:
+      labels:
+        app: nginx
+
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.24
+        ports:
+        - containerPort: 80
+
+
+now update to v2
+=============
+kubectl set image deployment/nginx-deploy nginx=nginx:1.25
+
+Check new vesion :
+
+
+kubectl rollout status deployment/nginx-deploy
+
+now v2 has some issues rollback the previous version :
+==============================================
+kubectl rollout undo deployment/nginx-deploy
+
+
+ReplicaSet is used to maintain the desired number of Pods and provides self-healing and scaling. Deployment is a higher-level Kubernetes object that manages ReplicaSets and provides advanced features like rolling updates, rollback, and revision history. In real-time projects, we generally use Deployments instead of directly creating ReplicaSets.
+
+
+ReplicaSet = Pod Manager
+
+
+Deployment = ReplicaSet Manager
+             + Rolling Update
+             + Rollback
+             + Version History
+
+Startegy:
+===========
+
+1. Recreate ----> existing pods willl be deleted and new pods will be created.
+
+2. Rolling Update ---> Instead of stopping all old pods and creating new ones, Kubernetes replaces pods one by one (or in batches) so users can continue accessing the application.
+
+
+ReplicaSet = Keep Pods Alive
+
+Deployment = Keep Pods Alive + Rolling Update + Rollback
+
+
+============
+Blue Green-Deployment
+==========================
+Blue-Green Deployment is a deployment strategy to release a new version with zero/minimum downtime.
+
+Blue  = Current Version (v1) ✅
+Green = New Version (v2) ✅
+
+
+Advantages 
+
+✅ Rapid Releasing: Deploy new version quickly.
+
+✅ Simple Rollbacks
+
+If Green fails:
+
+Green ❌
+Switch back to Blue ✅
+
+
+
+"In Kubernetes Blue-Green deployment is usually implemented by running two deployments with different labels (blue/green) and changing the Service selector to switch traffic between them.
+
+
+maxUnavailable → How many pods can go DOWN?
+
+maxSurge → How many EXTRA pods can be created?
+
+
+==============
+Auto-Scaling :(HPA)-->based on metrics pods will be increased /decreased
+===============
+✅ 200m CPU = 0.2 CPU core
+ ✅ 500m CPU = 0.5 CPU core
+ ✅ 256Mi = guaranteed memory
+ ✅ 512Mi = maximum memory allowed
+
+
+Requests = minimum guaranteed resources used by scheduler for pod placement.
+
+Limits = maximum resources a container is allowed to consume.
+
+CPU exceeds limit → throttled
+Memory exceeds limit → OOMKilled
+
+
+Step 1: Deployment
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springboot-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: springboot-app
+  template:
+    metadata:
+      labels:
+        app: springboot-app
+    spec:
+      containers:
+      - name: springboot-app
+        image: myrepo/springboot-app:v1
+        ports:
+        - containerPort: 8080
+
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+
+
+
+
+
+CPU Request = 200m
+Current Usage = 140m
+
+Utilization = 140/200 × 100
+            = 70%
+
+
+
+
+
+
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: springboot-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: springboot-app
+
+  minReplicas: 2
+  maxReplicas: 10
+
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+
+
+Suppose your company has an e-commerce application running on Kubernetes:
+
+Normal traffic → 3 pods
+Sale starts, CPU reaches 70-80%
+HPA detects high utilization
+Automatically scales to 10 pods
+After traffic drops, HPA scales back to 3 pods
+
+
+
+
+Users → Load Balancer → Pods (3)
+
+CPU > 70%
+       ↓
+      HPA
+       ↓
+Pods increase from 3 → 5 → 10
+
+Traffic decreases
+       ↓
+      HPA
+       ↓
+Pods decrease from 10 → 5 → 3
+
+Metrics Server is the component that collects resource usage metrics from Kubernetes nodes and pods.
+
+It mainly provides:
+
+CPU utilization
+Memory utilization
+
+
+Manually we increasde load to Teat HPA using tools 
+
+1. Busy box.
+
+2. Apache Bench
+
+3. JMeter.
+
+1--> Generate CPU Load inside a Pod :
+
+kubectl run -it --rm load-generator --image=busybox /bin/sh
+
+Inside the pod:
+
+while true; do :; done
+
+====
+For our application
+===============
+
+while true; do
+  wget -q -O- http://springboot-app-service
+done
+
+Continously sending the request.
+
+We create a temporary BusyBox pod and continuously send requests to the application service using a while loop with wget. 
+This generates load on the application, allowing us to test HPA behavior and observe Kubernetes automatically scaling pods based on CPU or memory utilization.
+
+==========
+Daemons set
+==========
+DaemonSet is a Kubernetes controller that ensures one Pod runs on every worker node.
+
+===================
+1. Log Collection (Most Common)
+===============================
+Companies use Fluentd, Fluent Bit, Filebeat as DaemonSets.
+
+✅ Why?
+
+Every node generates logs.
+One log collector pod runs on each node.
+Collects logs and sends them to ELK (Elasticsearch, Logstash, Kibana) or Splunk.
+
+Node1 -> Fluent Bit Pod
+Node2 -> Fluent Bit Pod
+Node3 -> Fluent Bit Pod
+
+
+=================
+2. Monitoring Agents
+========================
+
+Tools:
+
+Prometheus Node Exporter
+Datadog Agent
+New Relic Agent
+
+✅ Why?
+
+Need CPU, Memory, Disk metrics from every node.
+DaemonSet ensures monitoring agent exists on all nodes.
+
+
+DaemonSet is used when a pod must run on every node, such as log collectors, monitoring agents, security agents, network plugins, and storage drivers
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nginx-daemonset
+
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+
+  template:
+    metadata:
+      labels:
+        app: nginx
+
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+
+
+Example Output
+
+If you have 3 nodes:
+
+node01 node02 node03
+
+Daemon cretaes :
+
+nginx-daemonset-abc   node01
+nginx-daemonset-def   node02
+nginx-daemonset-ghi   node03
+
+
+
+
+1. ConfigMaps 
+
+2. Secrets
+
+3. Persistent Volumes (PV) & Persistent Volume Claims (PVC)
+
+4. StatefulSets
+
+6. RBAC
+
+7. Helm
+
+9. Network Policies
+
+10. Monitoring & Logging

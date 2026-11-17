@@ -1,0 +1,49 @@
+Course Schedule--Pending Topics -TImeTable:
+
+
+3 Months (18-11-2026)
+     to 
+
+feb -18-2027
+
+
+Linux--abhishek --Verramalu--7 hrs with rev
+
+GIT hub--Copoilot
+
+Docker --Ashokit
+
+Kubernates--Ashokit+ Udemy
+
+Ansible---> Abhishek (12 V)
+
+Terraform ---> You tube/Abhishek veeramlu
+
+Github/CICD/Jenkins---> abhishek 
+
+AI---Abhishek -Veeramalu
+
+AWS--Ashokit + Copoilot
+
+
+Daily---> 2 learning topics + 1 revision Topic.
+
+office ---> Ansible + Linux + Kube revision
+
+Home -->kube class 
+
+
+Revision :
+
+1. Linux-- 4 days
+
+2. Git---3 days
+
+3. Maven
+
+4. AWS
+
+5. Docker 
+
+6. Kube
+

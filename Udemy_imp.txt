@@ -1,0 +1,328 @@
+while scheduling time pods status is pending means --> nodes cant be assigned to pods.
+
+By default, the nodeName field is not set in the Pod manifest you create. 
+The Kubernetes scheduler watches for Pods that do not have nodeName set, selects a suitable node, and binds the Pod to that node. 
+
+Manually We add node  to pod using:
+
+There are two manual ways to schedule a Pod:
+1. Set nodeName in the Pod manifest at creation time (simplest).
+2. Create a Binding for an already-created Pod (mimics what the scheduler does).
+
+
+
+Option 1 — Set nodeName in the Pod manifest (creation time)-->it is used for creation time
+
+nodeName: node02  in Spec 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - containerPort: 8080
+  nodeName: node02
+
+kubectl apply -f pod.yaml
+
+
+IMP:
+
+nodeName can only be set at Pod creation time. It is effectively immutable and cannot be modified on an existing Pod.
+
+
+Bindng :it is mainly used for already existing pod.
+Binding means connecting a Pod to a particular worker node.
+
+{
+  "apiVersion": "v1",
+  "kind": "Binding",
+  "metadata": {
+    "name": "nginx"
+  },
+  "target": {
+    "apiVersion": "v1",
+    "kind": "Node",
+    "name": "node02"
+  }
+}
+
+after that we send a post 
+
+It tells the Kubernetes API Server:
+
+"Please assign the nginx Pod in the default namespace to node02."
+4. What is kubectl proxy and curl?
+- kubectl proxy: Creates a local connection to the Kubernetes API Server.
+- curl: Sends an HTTP POST request to the API Server.
+- Binding: Contains information about which Pod should be assigned to which Node.
+This is a manual way of doing what the Scheduler normally does automatically.
+
+
+Binding = Assigning a Pod to a Worker Node.
+
+====================
+Labels & Selectors:
+=========================
+
+
+Label = Name Tag for a Pod
+
+labels:
+  app: java-app
+
+
+Selector = Search Mechanism
+
+selector:
+  app: java-app
+
+"Find all Pods having app=java-app"
+
+Example:
+
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: simple-webapp
+  labels:
+    app: app1
+    function: front-end
+spec:
+  containers:
+    - name: simple-webapp
+      image: simple-webapp
+      ports:
+        - containerPort: 8080
+
+kubectl get pods --selector app=app1
+[select the label using the selector
+
+
+====
+while using the replica set or deployment 
+
+
+
+spec.selector.matchlabels.---> must match with the template.metadata.labels
+ so then only it create pods 
+
+many beginers made mistake is spec.selector.matachlabels to metadata.labels in main replicaset it is wrong 
+
+
+To find the same pods which matches all like env=prod,bu=finance, tier=frontend 
+
+
+kubectl get all --selector env=prod,bu=finance,tier=frontend
+
+
+=====================
+what happen if we are not mention the CPU and or any other resources how to schedule the nodes to the port.
+
+
+
+EX:
+Imagine you have 3 worker nodes
+
+
+Worker Node 1
+Available
+
+2 CPU, 4 GB RAM
+
+
+Worker Node 2
+Available
+
+4 CPU, 8 GB RAM
+
+
+Worker Node 3
+Available
+
+2 CPU, 2 GB RAM
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+
+
+Notice: We didn't mention CPU or RAM.
+
+
+
+Step 2: What does Scheduler do?
+Scheduler checks:
+- Is Node 1 healthy?
+- Is Node 2 healthy?
+- Is Node 3 healthy?
+
+
+Suppose all three are healthy and have no other scheduling restrictions.
+
+All three nodes are eligible.
+
+
+
+Step 3: How does it select?
+Scheduler scores the three nodes using its scheduling rules.
+
+For example, suppose the scores are:
+
+Node	Score (illustrative)
+Node 1	60
+Node 2	80
+Node 3	50
+
+Scheduler selects Node 2 because it has the highest score in this example.
+
+=====================
+Taints and Tolerants
+======================
+
+"Taints and tolerations are used to control which Pods can be scheduled on particular worker nodes.
+ Taints are applied to nodes, and matching tolerations are added to Pods. This helps us dedicate nodes for specific workloads."
+
+
+
+Taint = Node restriction.
+
+Toleration = Pod permission to tolerate that restriction.
+
+
+
+
+1. NoSchedule – Don't allow new Pods
+
+
+kubectl taint nodes node01 app=payment:NoSchedule
+
+
+Node 1
+
+nginx Pod
+
+Java Pod
+
+Existing Pods are not automatically removed.
+Remember: New Pods without toleration cannot be scheduled. Existing Pods continue running.
+
+
+2. PreferNoSchedule – Try to avoid
+
+kubectl taint nodes node01 app=payment:PreferNoSchedule
+
+Meaning: Node 1 says, "Please avoid placing Pods here if possible, but if there is no better option, you can schedule them."
+
+Remember: It is a preference, not a strict restriction.
+
+3. NoExecute – Don't allow and remove existing Pods
+
+
+kubectl taint nodes node01 app=payment:NoExecute
+Remember: NoExecute affects both existing and new Pods.
+
+
+4. Easy comparison
+Effect		New Pods	Existing Pods
+NoSchedule	Blocked		Continue running
+PreferNoSchedul Try to avoid	Continue running
+NoExecute	Blocked		Evicted
+
+
+
+
+
+
+
+
+
+
+1) Add a taint to a node
+
+kubectl taint nodes <node-name> <key>=<value>:<effect>
+kubectl taint nodes node1 app=blue:NoSchedule
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+spec:
+  containers:
+    - name: nginx-container
+      image: nginx
+  tolerations:
+    - key: "app"
+      operator: "Equal"
+      value: "blue"
+      effect: "NoSchedule"
+
+
+by default master node has taint mean no pod connect on the Master node
+
+IMP: taints and tolerants not tell the pods to go a particular node,instaed it tells the node to only accept pods with toleartion
+
+if your requirement is to restrict a pod to certain nodes, it is achieve dthrough node affinity
+
+
+Node Affinity means scheduling a Pod on a particular node based on that node's labels.
+
+
+Create a pod using Coomamand : kubectl run nginx --image=nginx
+
+
+1. Node Selectors
+
+
+2. Node Affinity
+
+
+3.Taints and Tolerations vs Node Affnity
+
+
+4. Resource Requirements
+
+5. DaemonSets
+
+. Static Pods
+
+. Priority Classes
+
+. Multiple Schedulers
+
+
+. Configuring Scheduler Profiles
+
+kubectl create daemonset monitoring-daemon --image=monitoring-agent:latest
+
+
+
+Ansible 
+
+
+
+
+
+
+
+
+
+
+
+
+
+

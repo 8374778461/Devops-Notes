@@ -1,0 +1,1461 @@
+IMP Commands******:
+
+kubectl get pod elephant -o yaml--Check pod yaml file
+
+-kubectl edit pod <pod-name>  (***************************)Edit the pod File --
+kubectl replace -f elephant.yaml --force(*******) delete the existing pod and created a new pod
+kubectl get pod elephant -o yaml > elephant.yaml : This command fetches the existing Pod configuration and saves it into a YAML file called elephant.yaml.
+
+
+
+
+while scheduling time pods status is pending means --> nodes cant be assigned to pods.
+
+Scheduling means deciding which Worker Node should run a Pod.
+
+Before selecting a node, the scheduler checks:
+1. CPU and memory availability.
+2. Node Selector.
+3. Node Affinity.
+4. Taints and Tolerations.
+5. Pod affinity and anti-affinity.
+6. Other scheduling constraints.
+It filters unsuitable nodes and scores the remaining nodes to select a suitable one.
+
+By default, the nodeName field is not set in the Pod manifest you create. 
+The Kubernetes scheduler watches for Pods that do not have nodeName set, selects a suitable node, and binds the Pod to that node. 
+
+Manually We add node  to pod using:
+
+There are two manual ways to schedule a Pod:
+1. Set nodeName in the Pod manifest at creation time (simplest).
+
+2. Create a Binding for an already-created Pod (mimics what the scheduler does).
+
+
+=====================
+Option 1 — Set nodeName in the Pod manifest (creation time)-->it is used for creation time
+=======================
+
+nodeName: node02  in Spec 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - containerPort: 8080
+  nodeName: node02
+
+kubectl apply -f pod.yaml
+
+
+IMP:
+
+nodeName can only be set at Pod creation time. It is effectively immutable and cannot be modified on an existing Pod.
+
+
+Bindng :it is mainly used for already existing pod.
+Binding means connecting a Pod to a particular worker node.
+
+{
+  "apiVersion": "v1",
+  "kind": "Binding",
+  "metadata": {
+    "name": "nginx"
+  },
+  "target": {
+    "apiVersion": "v1",
+    "kind": "Node",
+    "name": "node02"
+  }
+}
+
+after that we send a post 
+
+It tells the Kubernetes API Server:
+
+"Please assign the nginx Pod in the default namespace to node02."
+4. What is kubectl proxy and curl?
+- kubectl proxy: Creates a local connection to the Kubernetes API Server.
+- curl: Sends an HTTP POST request to the API Server.
+- Binding: Contains information about which Pod should be assigned to which Node.
+This is a manual way of doing what the Scheduler normally does automatically.
+
+
+Binding = Assigning a Pod to a Worker Node.
+
+====================
+Labels & Selectors:
+=========================
+
+
+Label = Name Tag for a Pod
+
+labels:
+  app: java-app
+
+
+Selector = Search Mechanism
+
+selector:
+  app: java-app
+
+"Find all Pods having app=java-app"
+
+Example:
+
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: simple-webapp
+  labels:
+    app: app1
+    function: front-end
+spec:
+  containers:
+    - name: simple-webapp
+      image: simple-webapp
+      ports:
+        - containerPort: 8080
+
+kubectl get pods --selector app=app1
+[select the label using the selector
+
+
+====
+while using the replica set or deployment 
+
+
+
+spec.selector.matchlabels.---> must match with the template.metadata.labels
+ so then only it create pods 
+
+many beginers made mistake is spec.selector.matachlabels to metadata.labels in main replicaset it is wrong 
+
+
+To find the same pods which matches all like env=prod,bu=finance, tier=frontend 
+
+
+kubectl get all --selector env=prod,bu=finance,tier=frontend
+
+
+=====================
+what happen if we are not mention the CPU and or any other resources how to schedule the nodes to the port.
+
+
+
+EX:
+Imagine you have 3 worker nodes
+
+
+Worker Node 1
+Available
+
+2 CPU, 4 GB RAM
+
+
+Worker Node 2
+Available
+
+4 CPU, 8 GB RAM
+
+
+Worker Node 3
+Available
+
+2 CPU, 2 GB RAM
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+
+
+Notice: We didn't mention CPU or RAM.
+
+
+
+Step 2: What does Scheduler do?
+Scheduler checks:
+- Is Node 1 healthy?
+- Is Node 2 healthy?
+- Is Node 3 healthy?
+
+
+Suppose all three are healthy and have no other scheduling restrictions.
+
+All three nodes are eligible.
+
+
+
+Step 3: How does it select?
+Scheduler scores the three nodes using its scheduling rules.
+
+For example, suppose the scores are:
+
+Node	Score (illustrative)
+Node 1	60
+Node 2	80
+Node 3	50
+
+Scheduler selects Node 2 because it has the highest score in this example.
+
+=====================
+Taints and Tolerants
+======================
+
+"Taints and tolerations are used to control which Pods can be scheduled on particular worker nodes.
+
+ Taints are applied to nodes, and matching tolerations are added to Pods. This helps us dedicate nodes for specific workloads."
+
+
+
+Taint = Node restriction.
+
+Toleration = Pod permission to tolerate that restriction.
+
+
+
+
+1. NoSchedule – Don't allow new Pods
+
+
+kubectl taint nodes node01 app=payment:NoSchedule
+
+
+Node 1
+
+nginx Pod
+
+Java Pod
+
+Existing Pods are not automatically removed.
+Remember: New Pods without toleration cannot be scheduled. Existing Pods continue running.
+
+
+2. PreferNoSchedule – Try to avoid
+
+kubectl taint nodes node01 app=payment:PreferNoSchedule
+
+Meaning: Node 1 says, "Please avoid placing Pods here if possible, but if there is no better option, you can schedule them."
+
+Remember: It is a preference, not a strict restriction.
+
+3. NoExecute – Don't allow and remove existing Pods
+
+
+kubectl taint nodes node01 app=payment:NoExecute
+Remember: NoExecute affects both existing and new Pods.
+
+
+4. Easy comparison
+Effect		New Pods	Existing Pods
+NoSchedule	Blocked		Continue running
+PreferNoSchedul Try to avoid	Continue running
+NoExecute	Blocked		Evicted
+
+
+
+1) Add a taint to a node
+
+kubectl taint nodes <node-name> <key>=<value>:<effect>
+kubectl taint nodes node1 app=blue:NoSchedule
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+spec:
+  containers:
+    - name: nginx-container
+      image: nginx
+  tolerations:
+    - key: "app"
+      operator: "Equal"
+      value: "blue"
+      effect: "NoSchedule"
+
+
+by default master node has taint mean no pod connect on the Master node
+
+IMP: taints and tolerants not tell the pods to go a particular node,instaed it tells the node to only accept pods with toleartion
+
+if your requirement is to restrict a pod to certain nodes, it is achieve dthrough node affinity
+
+
+Node Affinity means scheduling a Pod on a particular node based on that node's labels.
+
+
+Create a pod using Comamand : kubectl run nginx --image=nginx
+
+
+
+
+
+
+
+
+1. Node Selectors
+
+
+2. Node Affinity
+
+
+3.Taints and Tolerations vs Node Affnity
+
+
+4. Resource Requirements
+
+5. DaemonSets
+
+. Static Pods
+
+. Priority Classes
+
+. Multiple Schedulers
+
+
+. Configuring Scheduler Profiles
+
+kubectl create daemonset monitoring-daemon --image=monitoring-agent:latest
+
+
+3 Months (18-11-2026)
+     to 
+
+feb -18-2027
+
+
+Linux--abhishek --Verramalu--7 hrs with rev
+
+GIT hub--Copoilot
+
+Docker --Ashokit
+
+Kubernates--Ashokit+ Udemy
+
+Ansible---> Abhishek (12 V)
+
+Terraform ---> You tube/Abhishek veeramlu
+
+Github/CICD/Jenkins---> abhishek 
+
+AI---Abhishek -Veeramalu
+
+AWS--Ashokit + Copoilot
+
+
+Daily---> 2 learning topics + 1 revision Topic.
+
+office ---> Ansible + Linux + Kube revision
+
+Home -->kube class 
+
+
+Revision :
+
+1. Linux-- 4 days
+
+2. Git---3 days
+
+3. Maven
+
+4. AWS
+
+5. Docker 
+
+6. Kube
+
+
+==================
+Node Selectors :
+================
+
+-> Node Selector is a Kubernetes scheduling mechanism used to assign Pods to specific worker nodes based on node labels.
+
+--> First, we label the worker nodes,
+
+
+Suppose your Kubernetes cluster has:
+- Node 1: SSD storage
+- Node 2: HDD storage
+- Node 3: GPU-enabled node
+
+Label the node before creating the Pod. Use kubectl label nodes with the node name and key=value format. For example, to label node node01 as large:
+
+ 
+kubectl label nodes <node-name> <key=value>:
+
+kubectl label nodes node 1 disktype=ssd
+kubectl label nodes node 2 disktype=hdd
+kubectl label nodes node 3 disktype=GPU
+
+
+Check-Labels:
+
+
+kubectl get nodes --show-labels
+
+
+then specify those labels under nodeSelector in the Pod YAML
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+spec:
+  nodeSelector:
+    disktype: ssd
+  containers:
+    - name: nginx
+      image: nginx
+      ports:
+        - containerPort: 80
+
+Now Kubernetes schedules the Pod only on a node with disktype=ssd.
+
+It matches only one exact matching 
+
+Kubernetes schedules the Pod only on a matching node.
+
+=====
+Limitations 
+======
+
+-> nodeSelector supports only equality matches (exact match of key=value).
+
+-> It cannot express logical OR or negation (for example, “large OR medium” or “not small”).-->only one exact match not at a time match ssd or GPU
+
+
+To Over come above problem we use Node-affinity
+
+===============
+Node-affinity
+=============
+Node Affinity means scheduling a Pod on a particular node based on that node's labels.
+
+so node affinity matches the differnt values but node selectors matches only one value 
+
+Example:
+
+
+1. matchExpressions:
+  - key: size
+    operator: In
+    values:
+      - Large
+      - Medium
+
+Match multiple acceptable sizes (OR via values):
+
+2. matchExpressions:
+  - key: size
+    operator: NotIn
+    values:
+      - Small
+
+Exclude a particular label value:
+
+
+Example:
+
+Imagine your Kubernetes cluster has 3 worker nodes:
+- Node 1: SSD
+- Node 2: HDD
+- Node 3: SSD
+You want your Java application to run only on SSD nodes.
+
+You can use Node Affinity.
+
+
+
+=============================
+Types of Node Affinity
+==================================
+
+1. requiredDuringSchedulingIgnoredDuringExecution  ---: Must match the condition. Otherwise, Pod won't be scheduled.
+
+2. preferredDuringSchedulingIgnoredDuringExecution---: Try to match the condition, but scheduling can happen on another node.
+
+Required = Mandatory.
+
+Preferred = Optional preference.
+
+
+
+
+Required	                     Preferred
+Must match	                 Try to match
+Mandatory	                 Optional
+No matching node = Pod Pending	  Can use another suitable node
+Hard scheduling rule	               Soft scheduling rule
+
+
+
+
+
+
+
+
+
+============
+Example-2:
+=========
+
+Schedule Java application Pods only on nodes having disktype=ssd.
+
+
+Step 1: Label a worker node.
+
+kubectl label nodes worker-node-1 disktype=ssd
+
+
+Step 2: Create deployment.yaml.
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-web-app
+  namespace: ashokit-ns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: java-web-app
+  template:
+    metadata:
+      labels:
+        app: java-web-app
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: disktype
+                    operator: In
+                    values:
+                      - ssd
+      containers:
+        - name: java-container
+          image: naniom1234/javawebapp:v1
+          ports:
+            - containerPort: 8080
+
+
+kubectl apply -f deployment.yaml
+
+kubectl get pods -o wide -n ashokit-ns
+
+kubectl describe pod <pod-name> -n ashokit-ns
+
+
+===
+IMP
+====
+Step 1: Initially, Node-2 has a label means pod is running on node 2==prod using Node affinity
+
+Suppose you have 3 worker nodes:
+
+
+Node	Label
+Node-1	environment=dev
+Node-2	environment=prod
+Node-3	environment=test
+
+You create a Pod with this condition:
+
+
+requiredDuringSchedulingIgnoredDuringExecution:
+  nodeSelectorTerms:
+    - matchExpressions:
+        - key: environment
+          operator: In
+          values:
+            - prod
+Meaning: Run this Pod only on a node with environment=prod.
+
+The Pod is successfully running on Node-2.
+
+Step 3: Someone changes Node-2's label
+An administrator executes:
+
+kubectl label node Node-2 environment=dev --overwrite
+
+
+
+now Node-2 has:
+
+environment=dev
+
+But your Pod still has the requirement:
+
+environment=prod
+
+
+Step 4: What happens now?
+Kubernetes does NOT automatically remove or move this Pod.
+
+
+Why?
+
+Because IgnoredDuringExecution means:
+
+Once the Pod is scheduled and running, Kubernetes ignores changes to the node labels for this particular Node Affinity rule.
+
+
+so once pod is scheduled and running , then kubernates the ignore everything means any one can changed the nod ethey did not accept 
+
+
+"IgnoredDuringExecution means Kubernetes checks Node Affinity conditions only while scheduling the Pod. If node labels change after the Pod starts running, 
+Kubernetes will not automatically evict or move that Pod."
+
+================================
+kubectl get pods -o wide-->pods which run on the which node in detail
+
+
+controlplane ~ ➜  kubectl get pods -o wide
+NAME                   READY   STATUS    RESTARTS   AGE     IP           NODE     NOMINATED NODE   READINESS GATES
+blue-77d6644dd-5vwft   1/1     Running   0          2m59s   172.17.1.5   node01   <none>           <none>
+blue-77d6644dd-6f5s4   1/1     Running   0          2m59s   172.17.1.6   node01   <none>           <none>
+blue-77d6644dd-c2jwx   1/1     Running   0          2m59s   172.17.1.4   node01   <none>           <none>
+
+
+ kubectl label nodes controlplane
+
+
+===========================
+Taints & Tolerations Vs Node affinity :
+===========================
+
+bro Good Example :
+
+Taint does not select MySQL Pods. It only rejects Pods that don't have matching tolerations.
+
+Situation 1: Only Taint + Toleration
+
+We apply a taint to Worker Node 2:
+
+
+kubectl taint nodes worker2 app=database:NoSchedule
+
+
+MySQL Pod has matching toleration.
+
+Now Kubernetes sees:
+
+Node	        Can MySQL run?
+Worker Node 1	   Yes
+Worker Node 2	   Yes
+
+
+Because MySQL has permission to enter Worker Node 2, but nothing tells Kubernetes that it must go there.
+
+So MySQL might run on Worker Node 1!
+
+========Means mysql pod is enter to worker node 2 because it has taint for worker node 2 it does not allow the another pods.
+
+but mysql pod is also enter to worker node 1 also 
+
+
+Situation 2: Taint + Toleration + Node Affinity
+Now we add Node Affinity to MySQL.
+
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: app
+              operator: In
+              values:
+                - database
+
+tolerations:
+  - key: "app"
+    operator: "Equal"
+    value: "database"
+    effect: "NoSchedule"
+
+ow Kubernetes sees:
+Node	        MySQL Pod
+Worker Node 1	Not selected
+Worker Node 2	Selected and allowed
+
+
+Node Affinity says: MySQL, you must go to Worker Node 2.
+
+Toleration says: MySQL, you are allowed to enter Worker Node 2.
+
+Taint says: Other Pods, don't enter Worker Node 2.
+
+
+Taints and tolerations control which Pods are allowed on a node.
+ Node Affinity controls which nodes a Pod should or must use.
+
+
+
+=============
+Resource-Requests
+=========
+
+
+CPU & Memory
+
+
+when schedular tries to place a pod on anode it uses these number of identfy a node has sufficient amount resources avalable.
+
+
+ resources:
+        requests:
+          memory: "4Gi"
+          cpu: "2"
+
+
+
+
+0.1 CPu can also expressed as 100m wherem stands for Milli
+
+Not lower than that mentioned in 1
+
+
+
+memory----256mi
+
+you mentioned memory or cpu in pod , f in case more than that consume the pod , the pod will be  Terminated/out of memory(OOM)
+
+. Imagine a worker node
+Suppose your Kubernetes worker node has:
+- 4 CPU cores
+- 8 GB RAM
+You deploy two Pods: Frontend and Backend.
+
+Each Pod needs CPU and memory to run.
+
+Kubernetes provides two settings:
+
+Requests = Minimum requirement
+How much CPU and memory the container asks Kubernetes to reserve for scheduling.
+
+Limits = Maximum allowed
+How much CPU and memory the container is allowed to consume.
+
+resources:
+  requests:
+    cpu: "1"
+    memory: "1Gi"
+  limits:
+    cpu: "2"
+    memory: "2Gi"
+
+Meaning:
+- Request 1 CPU → Kubernetes uses 1 CPU as the scheduling requirement.
+- Limit 2 CPU → Container can use up to 2 CPUs.
+- Request 1 GB RAM.
+- Limit 2 GB RAM.
+So the container can use more than its request, but cannot exceed its limit.
+
+==========================
+Request = How much I need.
+Limit = Maximum I can use.
+*************************************************************
+
+========================================================================================
+CPU
+
+When a container exceeds its CPU limit, Kubernetes throttles CPU usage.
+
+It doesn't normally kill the container just because it exceeded the CPU limit.
+
+Memory
+
+When a container exceeds its memory limit, it can be killed by the Linux OOM mechanism.
+
+You may see OOMKilled as the container termination reason
+
+========================================================================================================
+Scenario	Request	Limit	Meaning
+1	No	No	No specified minimum or maximum
+2	No	Yes	Request defaults to limit
+3	Yes	Yes	Minimum scheduling requirement + maximum cap
+4	Yes	No	Minimum scheduling requirement, can burst
+
+=============================
+scenerio-1:No Requests and No Limits
+===========================================
+resources: {}
+
+- No minimum resource requirement is specified.
+- No maximum CPU or memory limit is specified.
+- Container can use available resources.
+Risky for production*******
+If multiple Pods consume too many resources, they can affect each other.
+
+==============================
+Scenerio -2:No Requests but Limits
+=========================
+
+resources:
+  limits:
+    cpu: "2"
+    memory: "2Gi"
+
+You didn't specify requests, but you specified limits.
+
+Kubernetes normally defaults the request to the limit when no request is specified.
+
+
+- Kubernetes schedules based on 2 CPUs and 2Gi memory.
+- Container cannot exceed those limits.
+Remember: When a limit is specified without a request, Kubernetes normally uses the limit as the request, unless defaults are configured differently.
+
+
+===========================
+Scenario 3: Both Requests and Limits
+=======================================
+
+resources:
+  requests:
+    cpu: "1"
+    memory: "1Gi"
+  limits:
+    cpu: "2"
+    memory: "2Gi"
+
+
+- Kubernetes schedules based on 1 CPU and 1Gi memory.
+- Container can use up to 2 CPUs and 2Gi memory.
+For CPU, if it tries to exceed 2 CPUs, Kubernetes throttles(limiting /controllling) it.
+
+For memory, if it exceeds its memory limit, it can be terminated with OOMKilled.
+========================
+Scenario 4: Requests but No Limits
+===========================
+resources:
+  requests:
+    cpu: "1"
+    memory: "1Gi"
+
+Here:
+- Request is 1 CPU.
+- Request is 1Gi memory.
+- No maximum limit is configured.
+
+
+
+For example:
+
+Your application requests 1 CPU but sometimes needs 2 CPUs.
+
+If the node has spare CPU capacity, it can use more than 1 CPU.
+
+But memory has a risk: excessive usage can cause memory pressure or OOM termination.
+
+
+
+==========
+1. What is LimitRange?
+==========================
+LimitRange is a Kubernetes object used to set minimum and maximum CPU and memory limits for containers or Pods within a namespace(********).
+
+
+
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: resource-limits
+  namespace: dev
+spec:
+  limits:
+    - type: Container
+      min:
+        cpu: "100m"
+        memory: "128Mi"
+      max:
+        cpu: "2"
+        memory: "2Gi"
+      defaultRequest:
+        cpu: "500m"
+        memory: "512Mi"
+      default:
+        cpu: "1"
+        memory: "1Gi"
+
+
+defaultRequest = If a developer doesn't specify a resource request, Kubernetes automatically assigns this value as the request.
+
+default = If a developer doesn't specify a resource limit, Kubernetes automatically assigns this value as the limit.
+
+Imagine a company rule for developers:
+- Minimum CPU allowed = 100m
+- Maximum CPU allowed = 2
+- If request is missing = Give 500m
+- If limit is missing = Give 1 CPU
+This is exactly what your LimitRange does!
+
+
+Example:2 :
+
+2. LimitRange
+Now imagine you have a namespace called dev.
+
+There are 10 developers creating Pods. You want to automatically provide default resource values when they don't specify requests and limits.
+
+You create a LimitRange YAML:
+
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: my-limits
+  namespace: dev
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: "500m"
+        memory: "512Mi"
+      default:
+        cpu: "1"
+        memory: "1Gi"
+
+Now, if a developer creates a Pod without specifying resources, Kubernetes applies these defaults.
+
+
+===============================
+
+Resources Quota
+======================
+
+Imagine your company has a Kubernetes cluster
+Your company has two teams:
+- Development team
+- Testing team
+Each team has a separate Kubernetes namespace.
+
+Your company decides:
+
+Development team can use a maximum of 4 CPUs and 4GB memory in total.
+
+Why? Because we don't want the Development team to consume all available resources.
+
+This is exactly what ResourceQuota does.
+2. Simple example
+Suppose your dev namespace has a ResourceQuota:
+Development namespace quota
+CPU allowed
+4 CPUs
+
+Memory allowed
+4 GB
+
+Maximum Pods
+5
+
+
+Developers create Pods
+Pod	CPU request	Memory request
+Pod 1	1 CPU	1 GB
+Pod 2	1 CPU	1 GB
+Pod 3	1 CPU	1 GB
+Pod 4	1 CPU	1 GB
+Total	4 CPU	4 GB
+
+Quota fully consumed
+
+Now another developer tries to create Pod 5 with:
+- CPU request = 1 CPU
+- Memory request = 1 GB
+What happens?
+Pod creation rejected
+Because:
+- CPU required = 5 CPUs, but allowed = 4.
+- Memory required = 5 GB, but allowed = 4 GB.
+Kubernetes rejects the new Pod because it exceeds the namespace quota.
+
+
+
+3. ResourceQuota YAML
+Create a file called quota.yaml.
+
+
+
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: dev-quota
+  namespace: dev
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: 4Gi
+    pods: "5"
+
+
+
+LimitRange
+Per Pod / Container
+Example: Each container can use a maximum of 1 CPU.
+
+
+ResourceQuota
+Entire Namespace
+Example: All containers together can request a maximum of 4 CPUs.
+
+=========
+Daemonsets:whenever New node is assigned to the cluster a replica of the pod is automaticallt added to that node
+======
+
+--> when a node is removed, the pod is automatically removed.
+
+The deamonset ensures thta one copy of the pod is always present in all nodes in the cluster.
+
+use cases:
+
+1. deploy a monitoring agent or log Collector on each of your nodes in the cluster
+
+2. So you can monitor your cluster better.
+
+3. Daemonset is perfect for that, as it can deploy your monitoring agent.
+
+4. Kube-Proxy component can be deployed as a daemonset in the cluster.
+
+kube-proxy is a typical example of a component that must run on each worker node and is often deployed as a DaemonSet.
+
+
+
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: monitoring-daemon
+spec:
+  selector:
+    matchLabels:
+      app: monitoring-agent
+  template:
+    metadata:
+      labels:
+        app: monitoring-agent
+    spec:
+      containers:
+      - name: monitoring-agent
+        image: monitoring-agent:latest
+
+Ensure the labels in spec.selector.matchLabels exactly match the labels in spec.template.metadata.labels. 
+
+If they don’t match, the DaemonSet controller will not manage the Pods created from that template.
+
+kubectl get daemonsets
+# or shorthand
+kubectl get ds
+
+
+$ kubectl get daemonsets
+NAME                 DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   AGE
+monitoring-daemon    3         3         3       3            3           41m
+
+
+
+kubectl describe daemonset monitoring-daemon
+
+
+
+1. Before Kubernetes v1.12
+Earlier, the DaemonSet controller directly assigned Pods to nodes using nodeName.
+
+For example, you have 3 worker nodes:
+- Worker 1
+- Worker 2
+- Worker 3
+The DaemonSet controller created Pods and directly specified which node should run each Pod.
+
+
+spec:
+  nodeName: worker-1
+
+DaemonSet controller created the Pod.
+It specified nodeName.
+Pod was directly bound to that node.
+Kubernetes scheduler was bypassed.
+
+===========
+2. From Kubernetes v1.12 onwards
+=======================
+The behavior changed.
+
+Now the DaemonSet controller creates Pods without specifying nodeName.
+
+Instead, it uses:
+- Node affinity
+- Tolerations
+Then the kube-scheduler schedules the Pods onto the intended nodes.
+
+DaemonSet controller checks eligible nodes.
+It creates a Pod for each eligible node.
+It adds node affinity constraints to the Pod.
+Kube-scheduler checks those constraints.
+Scheduler assigns each Pod to its intended node.
+
+
+kubectl get ds --all-namespaces ---> check all Daemonsets in all namespaces.
+
+How many nodes are running a pod created by the DaemonSet kube-proxy?
+
+kubectl get sa kube-flannel-ds --namespace=kube-flannel.
+
+
+What is the image used by the POD deployed by the kube-flannel-ds DaemonSet?
+kubectl describe daemonset kube-flannel-ds --namespace=kube-flannel
+
+
+============
+Static Pods : these pods that are created by the kublet on its =own without intervention from he API Server or rest of the kubernates Cluster Components
+===========
+
+Note:
+
+1. We only create the pods in this way
+
+2. you cannot craete replicasets or deployments or services by placing a defination file in the sdirectory
+
+3. kubelets is at pod Level
+
+
+
+
+
+
+
+
+
+
+
+
+Normal pods :
+
+1. You submit a pod.yaml using kubectl apply.
+
+2. API Server recieves the request and stores the the pod Information in ETCD.
+
+3. Schedular select a Suitable worker node 
+
+4.. Kublet on worker node recieves the pod nformtion .
+
+5. Kublet communicate the container runtime to craete the Container.
+
+6.POds Start Running.
+
+
+Static Pods:
+
+No schedular involment
+
+2. Kublet read the Yaml file directly from the node.
+
+kublet crates the pod locly
+
+
+***Normlpod: APIServer---> Schedular-->kublet--->ContainerRuntime.
+
+****static pod : YAML File---> kublet--> Container Runtime.
+
+
+
+
+/etc/kubernetes/manifests/
+
+Kubelet continuously watches this directory.
+
+If you place a Pod YAML file there, Kubelet automatically creates that Static Pod.
+
+
+2. How do we configure this location?
+Kubelet uses a configuration parameter called:
+
+staticPodPath
+
+YAMl:
+
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+
+staticPodPath: /etc/kubernetes/manifests
+
+Here:
+- staticPodPath tells Kubelet where to find Static Pod manifests.
+- Kubelet monitors that directory.
+- When a YAML file is added, Kubelet creates the Pod.
+- When the YAML file is removed, Kubelet removes the corresponding Pod.
+
+
+==================
+Mirror Pods 
+
+======
+A Mirror Pod is a read-only representation of a Static Pod in the Kubernetes API server. 
+When Kubelet creates a Static Pod from a local manifest file, it also registers a mirror Pod so that we can monitor it using kubectl. 
+Any changes to the Static Pod must be made in the original manifest file on the node."
+
+
+3. Why do we need Mirror Pods?
+Imagine you have 10 worker nodes.
+
+You create Static Pods on different nodes.
+
+Without mirror Pods, you cannot easily see those Static Pods through the Kubernetes API.
+
+Mirror Pods solve this problem.
+
+Using:
+kubectl get pods -A
+
+You can see the Static Pods across your cluster.
+
+Static pods are commonly used to run the control-plane components (API server, controller-manager, scheduler, etcd) on control-plane nodes because
+ they do not depend on the API server being available.
+
+
+Static Pods                                 DaemonSets
+
+1. Created directly by the kublet       managed by the DaemoSet Controlller
+2. Commonly used for Control plane       Commonly used for monitoring/Logging agents 
+Componants   
+
+3. Not schedular by the kube-schedular     pods are scheduled by the default schedular using Node Affinity
+
+
+ ls /etc/kubernetes/manifests/ to find the static pods in a node.
+
+
+
+=====
+create Static Pods 
+=======
+
+1. ls /etc/kubernetes/manifests/
+
+
+2. vi /etc/kubernetes/manifests/static-busybox.yaml
+
+
+3. 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: static-busybox
+  namespace: default
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    command:
+    - sleep
+    - "1000"
+
+
+4. kubectl get pods -n default
+
+
+
+
+
+
+
+
+
+
+============================
+Priorities
+======
+
+
+1. Priority Classes are Non Namespaced Objects ,means they are not created with in a specific namespace.
+
+2. when multiple Pods are waiting for resources and the cluster doesn't have enough CPU or memory, Kubernetes gives preference to higher-priority Pods.
+
+Imagine your cluster has 2 GB memory available, but you have these Pods waiting:
+- Pod A needs 1 GB.
+- Pod B needs 1 GB.
+- Pod C needs 1 GB.
+
+If Pod C has the highest priority, Kubernetes can schedule it before lower-priority Pods.
+
+
+2. Why do we need PriorityClass?
+Imagine you are running an application in production.
+
+You have:
+- Payment service
+- Login service
+- Reporting service
+If resources are limited, you may want the payment and login services to get scheduling preference over reporting.
+
+PriorityClass helps achieve this.
+
+
+5. What is Preemption?
+This is a very important concept.
+
+Suppose:
+- Node has 2 GB memory.
+- Low-priority Pod uses 1.5 GB.
+- High-priority Pod needs 1 GB.
+- There isn't enough available memory.
+What happens?
+
+Kubernetes scheduler may remove (evict) a lower-priority Pod to make room for the higher-priority Pod.
+
+This process is called Preemption.
+
+
+
+Priority can be defined as high as 1 billion and as low as -2 billion or that number.
+
+Larger Number--High Priority
+
+kubectl get priorityClass.
+
+
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority
+value: 100000
+globalDefault: false
+description: "High priority for important applications"
+
+4. How to assign PriorityClass to a Pod?
+In your Pod YAML, use priorityClassName.
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: payment-pod
+spec:
+  priorityClassName: high-priority
+  containers:
+  - name: payment
+    image: nginx
+
+
+
+
+If a pending higher-priority Pod cannot be scheduled because of insufficient resources, the scheduler consults the pending Pod’s preemptionPolicy.
+PreemptLowerPriority (default): the scheduler may evict lower-priority Pods to free resources.
+Never: Pods of this PriorityClass will not evict running Pods; they stay in the scheduling queue until resources become available.
+
+
+
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority
+value: 1000000000
+description: "Priority class for mission critical pods"
+preemptionPolicy: PreemptLowerPriority
+
+
+Non-preempting PriorityClass — never evicts others:
+
+
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority-nonpreempt
+value: 1000000000
+description: "Non-preempting priority class"
+preemptionPolicy: Never
+
+
+
+========================
+Imagine you are managing a banking application running on Kubernetes.
+
+You have three services:
+
+
+Application	Priority	Reason
+Payment Service	High (1000)	Critical transactions
+Login Service	High (900)	Users must log in
+Report Service	Low (100)	Reports can wait
+
+Suppose your Kubernetes worker node has limited CPU and memory.
+
+Now all three applications need resources.
+
+What should happen?
+- Payment Service should get scheduling preference.
+- Login Service should get scheduling preference.
+- Report Service can wait until resources become available.
+This is why we use PriorityClass.
+
+
+Production application
+Payment Service
+High priority
+
+Priority: 1000
+
+Login Service
+High priority
+
+Priority: 900
+
+Report Service
+Low priority
+
+Priority: 100
+
+
+If resources are insufficient
+
+Scheduler gives higher-priority Pods preference. It may preempt lower-priority Pods if necessary and possible.
+
+===========
+First, create a PriorityClass for the payment application.
+==================================================
+
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: payment-high
+value: 1000
+globalDefault: false
+description: "High priority for payment service"
+
+=kubectl apply -f priority.yaml
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: payment-pod
+spec:
+  priorityClassName: payment-high
+  containers:
+  - name: payment
+    image: nginx
+
+
+
+==============================
+kubectl get pod critical-app -o yaml > critical-app.yaml
+===================================
+we dont have Yaml file but we have pod critical then converted to yaml filename as critical-app.yaml

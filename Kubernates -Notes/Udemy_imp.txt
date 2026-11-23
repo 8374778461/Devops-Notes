@@ -1308,9 +1308,23 @@ If resources are limited, you may want the payment and login services to get sch
 
 PriorityClass helps achieve this.
 
+===========================
 
 5. What is Preemption?
 This is a very important concept.
+==========================
+
+If a higher-priority Pod cannot be scheduled because lower-priority Pods are occupying resources,
+ the scheduler may remove those lower-priority Pods to make room.
+
+preemptionPolicy: PreemptLowerPriority
+
+There are two options:
+Value	Meaning
+PreemptLowerPriority	The Pod can preempt lower-priority Pods if necessary.
+Never	The Pod cannot preempt lower-priority Pods.
+
+By default, the policy is PreemptLowerPriority.
 
 Suppose:
 - Node has 2 GB memory.
@@ -1459,3 +1473,15 @@ spec:
 kubectl get pod critical-app -o yaml > critical-app.yaml
 ===================================
 we dont have Yaml file but we have pod critical then converted to yaml filename as critical-app.yaml
+
+
+
+"PDB protects application availability during voluntary disruptions. During preemption,
+ the scheduler tries to respect PDB, but it cannot guarantee that the minimum number of Pods will always remain available.
+
+
+
+
+
+
+

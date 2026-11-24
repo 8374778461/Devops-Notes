@@ -177,10 +177,6 @@ What happens internally?
 
 Your public key (id_rsa.pub) is copied to 10.0.1.20:
 
-
-
-
-
 same :
 
 ssh-copy-id ec2-user@10.0.1.30
@@ -619,7 +615,21 @@ ansible-playbook ping.yaml -v /-vv> It will give how it executed in detail
 ansible-playbook 01-ping.yaml --syntax-check 
 
 ansible-playbook 01-ping.yaml --list-hosts---> whwre exactly the play book execute.
-ansible-playbook 01-ping.yaml --check
+ansible-playbook 01-ping.yaml --check:
+
+runs the playbook in Check Mode (Dry Run).
+
+What it does
+
+Ansible checks:
+
+✅ Is the syntax correct?
+ ✅ Can it connect to the target hosts?
+ ✅ What changes would be made?
+
+But it does not actually make changes.
+
+
 
 ansible-playbook 01-ping.yaml --step---> Confirmation for every step.
 
@@ -716,14 +726,304 @@ Graph : ansible-inventory -i inventory --graph
 In Json Format : ansible-inventory -i inventory --list
 =================================
 
+====
+variables
+===========
+
+Store the data in key-value format
+
+id=101
+name===ashok
+
+
+1. runtime varaiables
+
+2. Playbook variavbles
+
+3. Group variables
+
+4. Host variables 
+
+
+==============
+Runtime-variables :
+
+=============
+
+Passed while running the playbook.
+
+---
+
+- hosts: all
+  become: true
+  tasks:
+    - name: install package
+      yum: 
+        name: "{{package_name}}"
+        state: present
+
+
+ansible-playbook  03.yaml --extra-vars package_name=git
+
+
+=====
+2. Playbook variavbles
+========
+
+Defined inside the playbook.
+
+- hosts: webservers
+  become: yes(become a ansible root user)
+  vars:
+   package_name: httpd
+  tasks:
+
+    - name: Install httpd server
+      yum:
+        name: name: "{{package_name}}"
+        state: present
+
+    - name: Start Apache Service
+      service:
+        name: "{{package_name}}"
+        state: started
+        enabled: yes
+
+    - name: Copy Website Files
+      copy:
+        src: index.html
+        dest: /var/www/html/index.html
+---
+
+
+Requirement : write single play book to install git in webservers group and java in Db servers group
+
+---
+
+ - hosts: web
+   become: yes
+   tasks:
+    - name: Install Git
+      yum:
+        name: git
+        state: present
+
+---
+ - hosts: db
+   become: yes
+   tasks:
+    - name: Install Java
+      yum:
+        name: java-17-openjdk
+        state: present
+
+...
+if more groups it is difficult to write play books means multi[ple play books.
+
+so,\
+
+04-install-package.yaml
+=======================
+
+ - hosts: all
+   become: yes
+   tasks:
+    - name: Install software
+      yum:
+        name: "{{package}}"
+        state: present
+
+ansible-playbook  03.yaml --extra-vars package_name=git[if in case you give like this , install git in all servers]
+
+run  time variables not satisified.
+
+Play book variables also not staisified.
+
+===============
+we use group vars --->applicable at group level
+===============
+--->1. webservers.yaml
+       packages: git
+
+----> dbservers.yml
+      packages: java
+
+
+we create gropus in a directory :
+
+/etc/ansible/group_vars/
 
 
 
+cd /etc/ansible/
+
+mkdir group_vars
+
+cd group_vars
+
+vi webservers.yml:
+
+package: git
+
+vi dbservers.yml
+
+package: java
+
+cd ~
+
+ansible-playbook 04-install-package.yaml
+
+
+======
+Host-varaible : applicable at particular machine level
+====
+
+172.192.8.1.yaml
+
+package: mysql
+
+
+1. Runtime variable ---> passing the variable at riun time means for all play book pass same value.(wil pass at run time any value)
+
+ansible-playbook test.yml -e "name=ramesh"
+
+``
+
+
+2. Play-book vatriables : defined inside the playbook(fixed value declare )
+
+---
+- hosts: all
+
+  vars:
+    name: ashok
+
+  tasks:
+    - debug:
+        msg: "{{ name }}"
+
+
+Playbook Variable = Hardcoded in playbook
+Runtime Variable  = Value passed at execution time
+===============
+3. group -varaible: create a groups execute at group level
+==============
+4. host-variable: machine level
+
+
+===================
+handlers & tags
+=================
+
+website.yaml :
+================
+
+---
+- hosts: webservers
+  become: yes(become a ansible root user)
+  vars:
+   package_name: httpd
+  tasks:
+
+    - name: Install httpd server
+      yum:
+        name: name: "{{package_name}}"
+        state: present
+
+    -
+
+    - name: Copy Website Files
+      copy:
+        src: index.html
+        dest: /var/www/html/index.html
+     
+     - name: Start Apache Service
+      service:
+        name: "{{package_name}}"
+        state: started
+        enabled: yes
 
 
 
+for example there is a  play book ,in this play book we have 3 tasks while execute the task all three tasks are executed in sequential manner.
+ but i dont need to execute all time 
+
+1. if  2nd status will change then only execute the 3 rd task.
+
+2. execute only 2nd task not first tast because already server is installed.
+
+
+so we use Handklers & Tags.
+
+1. Handlers  are used to notify other task to execute.[it is notify for one task to another task]
+
+EX: if  2nd status will change then only execute the 3 rd task.
+
+
+2. It is commonly used for restarting services after configuration changes.
+
+---> Tag [execute particular task or skip the task]
+
+1. Tags are used to specify tag name for the task.
+
+2. Based on tag nmae we can execute or skip particular task
+
+
+Ex; execute only 2nd task not first tast because already server is installed.
+
+
+Handler = Run task only when change occurs
+
+Tag = Run only selected tasks
 
 
 
+05-handlers-tags.yaml
 
+---
+
+---
+- hosts: webservers
+  become: yes(become a ansible root user)
+  vars:
+   package_name: httpd
+  tasks:
+
+    - name: Install httpd server
+      yum:
+        name: name: "{{package_name}}"
+        state: present
+        tags: 
+          - install
+
+    - name: Copy Website Files
+      copy:
+        src: index.html
+        dest: /var/www/html/index.html
+      tags:
+       - copy
+      notify: 
+       start http service----------------------------------Handlers
+  handlers:
+     - name: Start httpd Service
+      service:
+        name: "{{package_name}}"
+        state: started
+        enabled: yes
+...
+
+   ansible-playbook 05-handlers-tags.yaml --syntax-check
+
+     ansible -playbook 05-handlers-tags.yaml
+
+
+ansible -playbook 05-handlers-tags.yaml --list-tags
+
+check the tags avaialble in play-book
+
+execute only particular task :
+
+ansible -playbook 05-handlers-tags.yaml --tags "install"  [only the first tag will execute]
+ansible -playbook 05-handlers-tags.yaml --tags "install,Copy"
+ansible -playbook 05-handlers-tags.yaml --skip-tags "install"[skip the first task and execute another task]
 

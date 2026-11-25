@@ -1480,6 +1480,305 @@ we dont have Yaml file but we have pod critical then converted to yaml filename 
  the scheduler tries to respect PDB, but it cannot guarantee that the minimum number of Pods will always remain available.
 
 
+==========================
+multiple Schedulers
+================
+Kubernetes normally has one default scheduler. 
+We can run additional schedulers when we need different scheduling logic. A Pod selects which scheduler should handle it using schedulerName.
+
+
+Field	Purpose
+schedulerName	Selects which scheduler handles the Pod
+priorityClassName	Defines how important the Pod is
+nodeName	Directly specifies a node; bypasses normal scheduler selection
+
+==============================================
+1. Why do we need Multiple Schedulers?
+=====================================
+
+
+Kubernetes has a default scheduler called:
+
+default-scheduler
+
+Its job is to select a suitable worker node for a Pod.
+
+
+For example, when you create:
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+
+
+You didn't specify schedulerName.
+
+So Kubernetes assigns the Pod to the default scheduler.
+
+But sometimes we need special scheduling logic.
+
+Application			Special scheduling requirement
+AI/ML application		Schedule only on GPU nodes
+High-performance application	Prefer nodes with specific hardware
+Database application		Use custom placement/scoring logic
+Batch workload			Use specialized scheduling policy
+
+You can often handle these requirements with the default scheduler's existing features,
+ 
+such as node affinity, taints, tolerations, and scheduling plugins. 
+
+A separate scheduler is useful when you need genuinely different scheduling behavior.
+
+2. How does a Pod select its scheduler?
+
+This is the most important part of your guide.
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  schedulerName: my-scheduler
+  containers:
+  - name: nginx
+    image: nginx
+
+
+schedulerName: my-scheduler
+
+This Pod should be handled by a scheduler configured with the name my-scheduler.
+
+The custom scheduler must actually be running and configured to handle that name.
+
+If the scheduler is missing or configured with a different name, the Pod can remain Pending.
+
+
+
+User creates Pod
+schedulerName: my-scheduler
+   |
+
+
+API Server
+Stores Pod in etcd
+   |
+my-scheduler
+Watches for Pods assigned to its scheduler name
+   |
+Selects a suitable worker node
+Checks resources and scheduling constraints
+   |
+Binds Pod to node
+  |
+Kubelet
+Runs the Pod on the selected worker node
+
+
+Remember: The scheduler selects the node and binds the Pod. The kubelet runs the containe
+
+"Kubernetes provides a default scheduler called kube-scheduler, which assigns Pods to suitable worker nodes.
+ If we need specialized scheduling logic, we can deploy additional schedulers or configure multiple scheduling profiles.
+ We specify the scheduler using the schedulerName field in the Pod specification. The scheduler must have a matching profile name and appropriate RBAC permissions.
+ For high availability, we can run multiple replicas with leader election so that one replica is active at a time."
+
+
+=====================
+2. How does the scheduler select a Node?
+
+==========================
+
+1. Scheduling Queue
+
+Pods wait for scheduling. Higher-priority Pods are generally processed first.
+
+
+2. Filtering
+
+Removes nodes that cannot run the Pod.
+
+Example: Node doesn't have enough CPU.
+
+
+3. Scoring
+
+Gives scores to the remaining suitable nodes.
+
+Example: Node A = 80, Node B = 60.
+
+
+4. Binding
+
+The scheduler assigns the Pod to the selected node.
+
+
+
+Quick revision
+- Scheduler → decides which Node runs a Pod.
+- Profile → a set of scheduler settings and plugins.
+- Plugin → performs a scheduling task.
+- Extension point → stage where a plugin runs.
+- Filtering → removes unsuitable Nodes.
+- Scoring → ranks suitable Nodes.
+- Binding → assigns Pod to Node.
+- Multi-profile → multiple logical schedulers inside one scheduler process.
+- schedulerName → Pod selects its scheduler profile.
+
+
+=====================
+Admission Controller
+==========================
+An Admission Controller is a component of the Kubernetes API server that checks or modifies a request before Kubernetes saves the object in etcd.
+
+It can:
+- Allow a request
+- Reject a request
+- Modify a request before saving it
+
+
+Suppose a developer creates a Pod:
+
+kubectl run nginx --image=nginx
+
+
+Your company has a security policy:
+All containers must use images from our company registry.
+
+An admission controller can check the image:
+- Company registry image → Allow
+- Unapproved registry image → Reject
+This helps enforce security policies across the cluster.
+
+2. Where do Admission Controllers work?
+Remember this flow:
+
+1. kubectl
+
+Developer sends a request to Kubernetes.
+
+
+2. Authentication
+Who are you?
+
+
+3. Authorization (RBAC)
+
+Are you allowed to perform this action?
+
+
+4. Admission Controllers
+
+Is this object allowed by cluster policy? Should it be modified?
+
+
+5. etcd
+
+If the request is accepted, the object is stored.
+
+Interview point: Admission controllers run inside the API server's request processing path, after authentication and authorization, and before persistence.
+
+
+A developer has permission to create Pods.
+- RBAC says: "This developer can create Pods."
+- Admission controller says: "But this Pod cannot run as root."
+
+So, RBAC permission does not guarantee that the Pod will be accepted.
+
+
+4. Two types of Admission Controllers:
+
+
+Validating
+
+Checks the request.
+
+Accept or reject.
+
+Example: Reject a Pod using a prohibited image.
+
+
+Mutating
+
+Modifies the request.
+
+Example: Add default values or inject a sidecar container.
+
+- Validating = Check it.
+- Mutating = Change it.
+Some admission plugins can perform both types of behavior
+
+
+5. Important built-in Admission Controllers
+Controller	Simple meaning
+NamespaceLifecycle	Prevents creating resources in namespaces that don't exist and protects certain system namespaces
+LimitRanger	Enforces resource limits and defaults defined by LimitRange
+ResourceQuota	Enforces namespace resource quotas
+PodSecurity	Enforces Pod security standards
+NodeRestriction	Restricts kubelet requests related to Node and Pod objects
+DefaultStorageClass	Assigns the default StorageClass to a PVC when appropriate
+
+Note: Your lesson mentions NamespaceExists and NamespaceAutoProvision. These are older controllers. In modern Kubernetes, NamespaceLifecycle handles the main namespace lifecycle behavior.
+6. Real-time example: ResourceQuota
+Suppose your namespace has this quota:
+
+
+
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: my-quota
+  namespace: dev
+spec:
+  hard:
+    pods: "5"
+
+he namespace allows a maximum of 5 Pods under this quota.
+
+If a developer tries to create the 6th Pod, the API request can be rejected by the ResourceQuota admission controller.
+
+This is how Kubernetes enforces namespace-level resource policies.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+: What are Admission Controllers in Kubernetes?
+
+"Admission controllers are plugins in the Kubernetes API server request processing flow. They run after authentication and authorization but before the object is persisted to etcd. They can validate requests, reject requests, or mutate objects. For example, we can enforce security policies, restrict container images, apply defaults, and enforce resource quotas."
+Quick revision
+- Admission controllers run in the API server.
+- They run after authentication and authorization.
+- They run before persistence to etcd.
+- Validating controllers check and accept/reject.
+- Mutating controllers modify requests.
+- RBAC controls user permissions; admission controllers enforce object policies.
+One-line memory trick: RBAC checks the user; Admission Controller checks the request/object.
+
+
+
+
+
+
+
 
 
 
